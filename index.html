@@ -22,7 +22,7 @@
             --border: #1e293b;
             --success: #10b981;
             --danger: #ef4444;
-            --brand-orange: #f97316; /* Toque distintivo para resaltar software premium */
+            --brand-orange: #f97316;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
@@ -43,13 +43,12 @@
         /* --- CONTENIDO PRINCIPAL --- */
         .main-content { margin-left: 280px; flex: 1; padding: 35px; max-width: calc(100% - 280px); }
         
-        /* HEADER DE PÁGINA */
         .page-header { margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
         .page-header h1 { font-size: 24px; font-weight: 700; }
         .page-header p { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
 
-        /* BUSCADOR AVANZADO */
-        .search-panel { background-color: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); padding: 20px; margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) 140px; gap: 15px; align-items: flex-end; }
+        /* BUSCADOR AVANZADO (Optimizado sin filtro de estado) */
+        .search-panel { background-color: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); padding: 20px; margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) 140px; gap: 15px; align-items: flex-end; }
         .filter-group { display: flex; flex-direction: column; gap: 6px; }
         .filter-group label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
         .filter-group input, .filter-group select { background-color: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: #fff; font-size: 14px; outline: none; }
@@ -60,25 +59,24 @@
         /* --- 📊 SECCIÓN DE GRÁFICOS ANALÍTICOS --- */
         .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px; }
         .chart-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; min-height: 280px; }
-        .chart-container { position: relative; flex: 1; width: 100%; height: 100%; }
+        .chart-container { position: relative; flex: 1; width: 100%; height: 220px; }
 
-        /* GRID INTERMEDIO: MAPA CUADRADO + KPIs */
+        /* GRID: MAPA + KPIs */
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px; }
         @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } .analytics-grid { grid-template-columns: 1fr; } }
         
-        .map-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; aspect-ratio: 1 / 1; }
-        #map { flex: 1; width: 100%; z-index: 1; }
+        .map-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; aspect-ratio: 1 / 1; min-height: 400px; }
+        #map { flex: 1; width: 100%; min-height: 350px; z-index: 1; }
         
-        /* Botones flotantes del mapa */
         .map-toggle-bar { padding: 10px 20px; background: #111827; border-bottom: 1px solid var(--border); display: flex; gap: 10px; }
         .btn-toggle-map { background: var(--bg-input); border: 1px solid var(--border); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 500; }
         .btn-toggle-map.active { background: var(--brand-orange); border-color: var(--brand-orange); }
 
-        .kpi-column { display: flex; flex-direction: column; gap: 20px; }
+        .kpi-column { display: flex; flex-direction: column; gap: 20px; justify-content: space-between; }
         .kpi-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; display: flex; align-items: center; gap: 20px; flex: 1; }
-        .kpi-card .icon-wrap { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(37, 99, 235, 0.1); color: var(--primary-light); }
+        .kpi-card .icon-wrap { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(249, 115, 22, 0.1); color: var(--brand-orange); }
         .kpi-card.success .icon-wrap { background: rgba(16, 185, 129, 0.1); color: var(--success); }
-        .kpi-info h3 { font-size: 32px; font-weight: 700; letter-spacing: -1px; }
+        .kpi-info h3 { font-size: 30px; font-weight: 700; letter-spacing: -1px; }
         .kpi-info p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
 
         /* TABLA MAESTRA */
@@ -89,20 +87,15 @@
         th { background-color: #0e1520; padding: 14px 18px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--border); font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
         td { padding: 14px 18px; border-bottom: 1px solid var(--border); color: #e2e8f0; cursor: pointer; }
         tr:hover td { background-color: #1c2638; }
-        
-        .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-        .badge.proceso { background: rgba(37, 99, 235, 0.15); color: var(--primary-light); }
-        .badge.finalizado { background: rgba(16, 185, 129, 0.15); color: var(--success); }
 
         /* FORMULARIOS MANUALES */
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; padding: 25px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); }
 
         .dropzone-container { background-color: var(--bg-card); border: 2px dashed var(--border); border-radius: 12px; padding: 50px; text-align: center; cursor: pointer; }
-        .dropzone-container:hover { border-color: var(--brand-orange); }
-
+        
         /* DETALLE MODAL FLOTANTE */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999; place-items: center; padding: 20px; }
-        .modal-content { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 650px; display: flex; flex-direction: column; overflow: hidden; }
+        .modal-content { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 650px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
         .modal-body { padding: 25px; overflow-y: auto; max-height: 70vh; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .modal-field { display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid #1f293d; padding-bottom: 10px; }
         .modal-field span { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
@@ -159,7 +152,7 @@
                 <div class="page-header">
                     <div>
                         <h1>Consola de Control Técnico</h1>
-                        <p>Análisis de dispersión geográfica, tipologías de suelo e histórico de tasaciones rústicas.</p>
+                        <p>Análisis de dispersión geográfica, tipologías de suelo e histórico de tasaciones rústicas validadas.</p>
                     </div>
                 </div>
 
@@ -175,14 +168,6 @@
                             <option value="Finca Rústica">Finca Rústica</option>
                             <option value="Invernadero">Invernadero</option>
                             <option value="Solar Urbano">Solar Urbano</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Estado</label>
-                        <select id="advStatus">
-                            <option value="">Todos</option>
-                            <option value="En proceso">En proceso</option>
-                            <option value="Finalizado">Finalizado</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -216,21 +201,17 @@
                     <div class="kpi-column">
                         <div class="kpi-card">
                             <div class="icon-wrap"><span class="material-symbols-outlined">inventory</span></div>
-                            <div class="kpi-info"><h3 id="kpiTotal">0</h3><p>Muestras Totales en Historial</p></div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="icon-wrap"><span class="material-symbols-outlined">progress_activity</span></div>
-                            <div class="kpi-info"><h3 id="kpiPending">0</h3><p>Informes en Redacción Activa</p></div>
+                            <div class="kpi-info"><h3 id="kpiTotal">0</h3><p>Histórico Total de Tasaciones</p></div>
                         </div>
                         <div class="kpi-card success">
-                            <div class="icon-wrap"><span class="material-symbols-outlined">verified_user</span></div>
-                            <div class="kpi-info"><h3 id="kpiDone">0</h3><p style="color:var(--success);">Informes Validados y Cerrados</p></div>
+                            <div class="icon-wrap"><span class="material-symbols-outlined">payments</span></div>
+                            <div class="kpi-info"><h3 id="kpiVolumenEconomico">0 €</h3><p style="color:var(--success);">Volumen Económico Tasado</p></div>
                         </div>
                     </div>
                 </div>
 
                 <div class="table-card">
-                    <div class="card-header">Histórico Sincronizado de Fincas y Testigos</div>
+                    <div class="card-header">Histórico de Tasaciones (Haz clic en una fila para inspeccionar datos completos)</div>
                     <div class="table-wrap">
                         <table>
                             <thead>
@@ -239,13 +220,12 @@
                                     <th>Tipo Inmueble</th>
                                     <th>Propietario / Solicitante</th>
                                     <th>Localización / Paraje</th>
-                                    <th>Estado</th>
                                     <th>Distancia Centro</th>
                                     <th>Valor Absoluto</th>
                                 </tr>
                             </thead>
                             <tbody id="recordsBody">
-                                <tr><td colspan="7" style="text-align:center; color:var(--text-muted)">Conectando con base de datos corporativa...</td></tr>
+                                <tr><td colspan="6" style="text-align:center; color:var(--text-muted)">Conectando con base de datos corporativa...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -268,13 +248,6 @@
                     <div class="filter-group"><label>Municipio / Localidad</label><input type="text" name="localidad" required placeholder="Ej: Almería"></div>
                     <div class="filter-group"><label>Coordenadas GPS (Lat,Lng)</label><input type="text" name="lote" required placeholder="36.8381,-2.4597"></div>
                     <div class="filter-group"><label>Valor del Inmueble (€)</label><input type="number" name="valor" required></div>
-                    <div class="filter-group">
-                        <label>Estado Técnico</label>
-                        <select name="estado">
-                            <option value="En proceso">En proceso</option>
-                            <option value="Finalizado">Finalizado / Validado</option>
-                        </select>
-                    </div>
                     <div class="filter-group" style="justify-content: flex-end;"><button type="submit" class="btn-search" style="width:100%">Escribir en Base de Datos</button></div>
                 </form>
             </div>
@@ -295,7 +268,7 @@
     <div id="detailsModal" class="modal">
         <div class="modal-content">
             <div class="card-header">
-                <span style="font-weight:700;">Auditoría de Registro Completo</span>
+                <span style="font-weight:700; color:#fff;">Auditoría de Registro Completo</span>
                 <span class="material-symbols-outlined" id="btnCerrarModal" style="cursor:pointer; color:var(--danger)">close</span>
             </div>
             <div class="modal-body" id="modalDataContent"></div>
@@ -304,7 +277,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
