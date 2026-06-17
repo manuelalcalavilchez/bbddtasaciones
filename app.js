@@ -158,7 +158,6 @@
     if (!els.kpiTotal || !els.kpiPending || !els.kpiDone) return;
     
     const total = state.records.length;
-    // CORREGIDO COMPLETAMENTE: Filtro nativo JS sin interferencias de texto estructurado
     const pendientesOEnProceso = state.records.filter(r => r.estado === 'Pendiente' || r.estado === 'En proceso').length;
     const finalizados = state.records.filter(r => r.estado === 'Finalizado').length;
 
@@ -174,6 +173,7 @@
     if (!els.recordsBody) return;
     
     try {
+      // CUADRADO: Ordenación por la columna real en minúsculas 'fecha'
       const response = await fetch(`${state.apiBase}/importacion_tasaciones?order=fecha.desc`);
       
       if (response.ok) {
@@ -275,9 +275,7 @@
         for (let i = 0; i < filas.length; i++) {
           const item = filas[i];
           
-          if (!item.fecha) item.fecha = new Date().toISOString().slice(0, 10);
-          item.valor = Number(item.valor) || 0;
-
+          // CUADRADO: El Front-end ya no altera ni inventa claves; envía el JSON puro a PostgREST
           els.importProgress.textContent = `Subiendo registros: Fila ${i + 1} de ${filas.length}...`;
 
           try {
