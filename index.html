@@ -1,18 +1,49 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AppraisalPro — Valuation Suite</title>
-    <!-- Google Fonts and Material Symbols -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-  </head>
-  <body class="bg-background text-on-background select-none antialiased">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tasaciones Alcalá — Dashboard</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="page">
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">TA</span>
+      <span>Tasaciones Alcalá</span>
+    </div>
+    <div class="status-pill" id="connectionStatus" data-state="idle">Conectando…</div>
+  </header>
+  <main class="container">
+    <section class="panel">
+      <h2>Estado del servicio</h2>
+      <div class="kv">
+        <div>
+          <div class="label">Frontend</div>
+          <div class="value" id="frontendStatus">—</div>
+        </div>
+        <div>
+          <div class="label">API</div>
+          <div class="value" id="apiStatus">—</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div id="frontendUrl">url: —</div>
+        <div id="apiUrl">api: —</div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Acciones</h2>
+      <div class="actions">
+        <button class="btn" id="btnPingApi" type="button">Probar API ahora</button>
+        <button class="btn secondary" id="btnReload" type="button">Recargar</button>
+      </div>
+      <pre class="log" id="log">Esperando interacción…</pre>
+    </section>
+  </main>
+  <footer class="footer">
+    <span>Repositorio: https://github.com/manuelalcalavilchez/bbddtasaciones</span>
+  </footer>
+  <script src="/app.js"></script>
+</body>
 </html>
-
