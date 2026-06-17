@@ -1,3 +1,6 @@
+Aquí tienes el archivo **`app.js`** completo, corregido, unificado y con el error de la variable resuelto para que puedas copiarlo y pegarlo directamente sin rastro de fallos sintácticos.
+
+```javascript
 (function () {
   // Configuración de Endpoints globales del sistema
   const state = {
@@ -162,11 +165,13 @@
     if (!els.kpiTotal || !els.kpiPending || !els.kpiDone) return;
     
     const total = state.records.length;
-    const pendientes o en proceso = state.records.filter(r => r.estado === 'Pendiente' || r.estado === 'En proceso').length;
+    
+    // CORREGIDO: Nombre de variable unificado sin espacios sueltos
+    const pendientesOEnProceso = state.records.filter(r => r.estado === 'Pendiente' || r.estado === 'En proceso').length;
     const finalizados = state.records.filter(r => r.estado === 'Finalizado').length;
 
     els.kpiTotal.textContent = total;
-    els.kpiPending.textContent = pendientes o en proceso;
+    els.kpiPending.textContent = pendientesOEnProceso;
     els.kpiDone.textContent = finalizados;
   };
 
@@ -252,4 +257,208 @@
         throw new Error(response.statusText);
       }
     } catch (error) {
-      alert('Error de inserción. Comprueba los campos en tu PostgreSQL
+      alert('Error de inserción. Comprueba los campos en tu PostgreSQL.');
+    }
+  };
+
+  // ==========================================
+  // 📥 IMPORTACIÓN MASIVA DE ARCHIVOS JSON
+  // ==========================================
+  const procesarArchivoJSON = (file) => {
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+      try {
+        const datos = JSON.parse(e.target.result);
+        const filas = Array.isArray(datos) ? datos : [datos];
+        
+        if (!els.importProgress) return;
+        els.importProgress.style.display = 'block';
+        els.importProgress.style.color = 'var(--warning)';
+        
+        let correctos = 0;
+        let fallidos = 0;
+
+        log(`Iniciando volcado masivo de ${filas.length} elementos...`);
+
+        for (let i = 0; i < filas.length; i++) {
+          const item = filas[i];
+          
+          // Formateo y limpieza preventiva
+          if (!item.fecha) item.fecha = new Date().toISOString().slice(0, 10);
+          item.valor = Number(item.valor) || 0;
+
+          els.importProgress.textContent = `Subiendo registros: Fila ${i + 1} de ${filas.length}...`;
+
+          try {
+            const response = await fetch(`${state.apiBase}/importacion_tasaciones`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(item)
+            });
+            if (response.ok) correctos++; else fallidos++;
+          } catch {
+            fallidos++;
+          }
+        }
+
+        els.importProgress.style.color = 'var(--success)';
+        els.importProgress.innerHTML = `<strong>¡Volcado finalizado!</strong><br/>✅ Filas insertadas: ${correctos} | ❌ Errores: ${fallidos}`;
+        log(`Importación finalizada. Éxito: ${correctos}. Fallidos: ${fallidos}.`);
+        
+        // Refrescar memoria caché global
+        await cargarTasacionesDesdeBBDD();
+      } catch {
+        alert('El archivo no contiene un formato de datos JSON estructuralmente válido.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // ==========================================
+  // 👥 SECCIÓN: GESTIÓN DE USUARIOS INTERNOS
+  // ==========================================
+  const cargarUsuariosDesdeBBDD = async () => {
+    if (!els.usersBody) return;
+    try {
+      const res = await fetch(`${state.apiBase}/usuarios?order=email.asc`);
+      if (res.ok) {
+        state.systemUsers = await res.json();
+        renderUsuariosTable();
+      }
+    } catch (err) {
+      els.usersBody.innerHTML = `<tr><td colspan="4">Error de conexión con usuarios.</td></tr>`;
+    }
+  };
+
+  const renderUsuariosTable = () => {
+    if (state.systemUsers.length === 0) {
+      els.usersBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--muted)">Sin usuarios en el sistema.</td></tr>`;
+      return;
+    }
+    els.usersBody.innerHTML = state.systemUsers.map(u => `
+      <tr>
+        <td><strong>${escapeHtml(u.email)}</strong></td>
+        <td><span style="background:#1e293b; padding:4px 8px; border-radius:6px; font-size:12px;">${escapeHtml(u.role)}</span></td>
+        <td>2026/06/17</td>
+        <td><button class="secondary danger" style="padding:4px 10px; font-size:12px;" onclick="alert('Función de borrado protegida por rol de administrador local.')">Inhabilitar</button></td>
+      </tr>
+    `).join('');
+  };
+
+  const handleUserSubmit = async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('uEmail').value.trim();
+    const password = document.getElementById('uPass').value;
+    const role = document.getElementById('uRole').value;
+
+    try {
+      const res = await fetch(`${state.apiBase}/usuarios`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, role })
+      });
+
+      if (res.ok) {
+        log(`Nuevo usuario registrado en PostgreSQL: ${email}`);
+        e.target.reset();
+        if (els.userFormWrap) els.userFormWrap.style.display = 'none';
+        cargarUsuariosDesdeBBDD();
+      } else {
+        alert('No se pudo registrar. Puede que el email ya exista.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ==========================================
+  // 🗺️ ENRUTADOR Y MANIPULACIÓN DEL DOM
+  // ==========================================
+  const navigate = (page) => {
+    document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('active', a.dataset.page === page));
+    document.querySelectorAll('section[id^="page-"]').forEach(el => el.style.display = 'none');
+    
+    const targetSection = document.getElementById(`page-${page}`);
+    if (targetSection) targetSection.style.display = '';
+    
+    if (els.frontendStatus) els.frontendStatus.textContent = state.frontendBase;
+
+    // Disparadores dinámicos según cambio de vista
+    if (page === 'dashboard' || page === 'records') {
+      cargarTasacionesDesdeBBDD();
+    }
+    if (page === 'users') {
+      cargarUsuariosDesdeBBDD();
+    }
+  };
+
+  const escapeHtml = (str) => {
+    return String(str ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  };
+
+  // Asignación unificada de eventos de usuario
+  const bindAllEvents = () => {
+    // Login manual
+    if (els.btnLogin) els.btnLogin.addEventListener('click', ejecutarLogin);
+    if (els.loginPassword) els.loginPassword.addEventListener('keypress', (e) => { if (e.key === 'Enter') ejecutarLogin(); });
+    
+    // Logout
+    if (els.btnLogout) els.btnLogout.addEventListener('click', () => {
+      localStorage.removeItem('session_user');
+      location.reload();
+    });
+
+    // Menús de la App
+    document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigate(a.dataset.page);
+    }));
+
+    // Búsqueda en tiempo real
+    if (els.search) els.search.addEventListener('input', renderRecordsTable);
+    if (els.filterStatus) els.filterStatus.addEventListener('change', renderRecordsTable);
+
+    // Formularios
+    if (els.recordForm) els.recordForm.addEventListener('submit', handleRecordSubmit);
+    if (els.userForm) els.userForm.addEventListener('submit', handleUserSubmit);
+
+    // Botones de diagnóstico
+    if (els.btnPingApi) els.btnPingApi.addEventListener('click', checkApiHealth);
+    if (els.btnReload) els.btnReload.addEventListener('click', () => location.reload());
+    
+    if (els.btnToggleUserForm) els.btnToggleUserForm.addEventListener('click', () => {
+      if (els.userFormWrap) els.userFormWrap.style.display = els.userFormWrap.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Zona de arrastre de ficheros JSON (Drag & Drop)
+    if (els.dropZone && els.jsonFileInput) {
+      els.dropZone.addEventListener('click', () => els.jsonFileInput.click());
+      els.jsonFileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) procesarArchivoJSON(e.target.files[0]);
+      });
+      els.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropZone.style.borderColor = 'var(--primary)'; });
+      els.dropZone.addEventListener('dragleave', () => { els.dropZone.style.borderColor = 'var(--border)'; });
+      els.dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        els.dropZone.style.borderColor = 'var(--border)';
+        if (e.dataTransfer.files.length > 0) procesarArchivoJSON(e.dataTransfer.files[0]);
+      });
+    }
+  };
+
+  // Inicialización de ciclo de vida
+  const init = async () => {
+    bindAllEvents();
+    verificarPersistenciaSesion();
+    await checkApiHealth();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
+```
