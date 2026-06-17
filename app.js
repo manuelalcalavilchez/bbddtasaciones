@@ -173,7 +173,6 @@
     if (!els.recordsBody) return;
     
     try {
-      // CUADRADO: Ordenación por la columna real en minúsculas 'fecha'
       const response = await fetch(`${state.apiBase}/importacion_tasaciones?order=fecha.desc`);
       
       if (response.ok) {
@@ -181,7 +180,7 @@
         renderRecordsTable();
         calcularYMostrarKPIs();
       } else {
-        els.recordsBody.innerHTML = `<tr><td colspan="8" style="color:var(--danger)">Error al consultar datos (${response.statusText}). Revisa si la tabla 'importacion_tasaciones' tiene permisos públicos.</td></tr>`;
+        els.recordsBody.innerHTML = `<tr><td colspan="8" style="color:var(--danger)">Error al consultar datos (${response.statusText}).</td></tr>`;
       }
     } catch (error) {
       els.recordsBody.innerHTML = `<tr><td colspan="8" style="color:var(--danger)">Fallo de red al conectar con PostgREST.</td></tr>`;
@@ -253,15 +252,41 @@
   };
 
   // ==========================================
-  // 📥 IMPORTACIÓN MASIVA DE ARCHIVOS JSON
+  // 📥 IMPORTACIÓN MASIVA DE ARCHIVOS JSON (INTELIGENTE)
   // ==========================================
   const procesarArchivoJSON = (file) => {
     const reader = new FileReader();
     
     reader.onload = async (e) => {
       try {
-        const datos = JSON.parse(e.target.result);
-        const filas = Array.isArray(datos) ? datos : [datos];
+        let rawData = JSON.parse(e.target.result);
+        let filasAProcesar = [];
+
+        // ADAPTADOR INTELIGENTE: Detectamos si es tu informe estructural completo
+        if (rawData.identificacion_informe || rawData.datos_catastrales) {
+          log("Estructura de informe complejo detectada. Normalizando campos...");
+          
+          // Extraemos el valor numérico quitando separadores de miles
+          let valorStr = rawData.valores_tasacion?.valor_comparacion?.valor_total || "0";
+          let valorLimpio = Number(valorStr.replace(/\./g, '').replace(',', '.')) || 0;
+
+          // Construimos el objeto plano que sí entiende tu tabla de base de datos
+          const filaNormalizada = {
+            referencia: rawData.datos_catastrales?.referencias?.[0]?.referencia_catastral || "S/R-" + Date.now(),
+            tipo: rawData.identificacion_y_localizacion?.clase_general_inmueble || "Finca",
+            propietario: rawData.solicitante_y_finalidad?.solicitante?.nombre || rawData.identificacion_informe?.sociedad_tasacion?.nombre || "Desconocido",
+            lote: rawData.identificacion_y_localizacion?.paraje || "Principal",
+            localidad: rawData.datos_catastrales?.referencias?.[0]?.parcela || "Almería",
+            estado: "Pendiente",
+            fecha: new Date().toISOString().slice(0, 10),
+            valor: valorLimpio
+          };
+
+          filasAProcesar.push(filaNormalizada);
+        } else {
+          // Si ya era un array plano tradicional, lo dejamos tal cual
+          filasAProcesar = Array.isArray(rawData) ? rawData : [rawData];
+        }
         
         if (!els.importProgress) return;
         els.importProgress.style.display = 'block';
@@ -270,13 +295,11 @@
         let correctos = 0;
         let fallidos = 0;
 
-        log(`Iniciando volcado masivo de ${filas.length} elementos...`);
+        log(`Iniciando volcado masivo de ${filasAProcesar.length} elementos...`);
 
-        for (let i = 0; i < filas.length; i++) {
-          const item = filas[i];
-          
-          // CUADRADO: El Front-end ya no altera ni inventa claves; envía el JSON puro a PostgREST
-          els.importProgress.textContent = `Subiendo registros: Fila ${i + 1} de ${filas.length}...`;
+        for (let i = 0; i < filasAProcesar.length; i++) {
+          const item = filasAProcesar[i];
+          els.importProgress.textContent = `Subiendo registros: Fila ${i + 1} de ${filasAProcesar.length}...`;
 
           try {
             const response = await fetch(`${state.apiBase}/importacion_tasaciones`, {
@@ -295,8 +318,8 @@
         log(`Importación finalizada. Éxito: ${correctos}. Fallidos: ${fallidos}.`);
         
         await cargarTasacionesDesdeBBDD();
-      } catch {
-        alert('El archivo no contiene un formato de datos JSON estructuralmente válido.');
+      } catch (err) {
+        alert('Error al procesar el JSON: ' + err.message);
       }
     };
     reader.readAsText(file);
