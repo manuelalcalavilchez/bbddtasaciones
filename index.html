@@ -47,7 +47,7 @@
         .page-header h1 { font-size: 24px; font-weight: 700; }
         .page-header p { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
 
-        /* BUSCADOR AVANZADO (Optimizado sin filtro de estado) */
+        /* BUSCADOR AVANZADO */
         .search-panel { background-color: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); padding: 20px; margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) 140px; gap: 15px; align-items: flex-end; }
         .filter-group { display: flex; flex-direction: column; gap: 6px; }
         .filter-group label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
@@ -90,10 +90,11 @@
 
         /* FORMULARIOS MANUALES */
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; padding: 25px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); }
+        .form-single { max-width: 450px; background: var(--bg-card); padding: 25px; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 20px; }
 
         .dropzone-container { background-color: var(--bg-card); border: 2px dashed var(--border); border-radius: 12px; padding: 50px; text-align: center; cursor: pointer; }
         
-        /* DETALLE MODAL FLOTANTE */
+        /* DETALLE MODAL */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999; place-items: center; padding: 20px; }
         .modal-content { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 650px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
         .modal-body { padding: 25px; overflow-y: auto; max-height: 70vh; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -138,6 +139,8 @@
                     <a href="#" class="active" data-page="dashboard"><span class="material-symbols-outlined">analytics</span>Dashboard Analytics</a>
                     <a href="#" data-page="records"><span class="material-symbols-outlined">note_add</span>Alta de Expedientes</a>
                     <a href="#" data-page="import"><span class="material-symbols-outlined">cloud_sync</span>Importador JSON</a>
+                    <a href="#" data-page="users"><span class="material-symbols-outlined">group</span>Gestión de Usuarios</a>
+                    <a href="#" data-page="account"><span class="material-symbols-outlined">manage_accounts</span>Mi Cuenta</a>
                 </div>
             </div>
             <div class="user-info">
@@ -233,7 +236,7 @@
             </div>
 
             <div id="page-records" class="view-section">
-                <h2 style="margin-bottom:20px;">Alta de Ficha Técnica Individual</h2>
+                <h2 style="margin-bottom:20px;">Alta de Ficha Técnico Individual</h2>
                 <form id="manualRecordForm" class="form-grid">
                     <div class="filter-group"><label>Referencia Catastral</label><input type="text" name="referencia" required></div>
                     <div class="filter-group">
@@ -260,6 +263,24 @@
                     <input type="file" id="jsonFileInput" style="display:none" accept=".json" multiple>
                 </div>
                 <div id="importProgress" style="background:var(--bg-card); padding:20px; border-radius:12px; border:1px solid var(--border); display:none; margin-top:20px;"></div>
+            </div>
+
+            <div id="page-users" class="view-section">
+                <h2 style="margin-bottom:20px;">Panel de Control de Operarios y Personal Técnico</h2>
+                <form id="userAdminForm" class="form-single">
+                    <div class="filter-group"><label>Email del Nuevo Técnico</label><input type="email" name="email" required placeholder="nombre@tecnologiaalcala.es"></div>
+                    <div class="filter-group"><label>Contraseña Inicial</label><input type="password" name="password" required placeholder="••••••••"></div>
+                    <button type="submit" class="btn-search">Dar de Alta en Infraestructura</button>
+                </form>
+            </div>
+
+            <div id="page-account" class="view-section">
+                <h2 style="margin-bottom:20px;">Seguridad del Terminal de Trabajo</h2>
+                <form id="changePasswordForm" class="form-single">
+                    <div class="filter-group"><label>Contraseña Actual</label><input type="password" id="oldPassword" required placeholder="••••••••"></div>
+                    <div class="filter-group"><label>Nueva Contraseña</label><input type="password" id="newPassword" required placeholder="Mínimo 6 caracteres"></div>
+                    <button type="submit" class="btn-search" style="background-color: var(--brand-orange);">Actualizar Mi Clave</button>
+                </form>
             </div>
 
         </div>
