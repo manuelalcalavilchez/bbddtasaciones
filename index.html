@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>bbddtasaciones — Dashboard</title>
+<title>BBDD Tasaciones — Panel de Control</title>
 <style>
 :root {
   --bg: #0b1120;
@@ -15,82 +15,23 @@
   --primary: #4f8cff;
   --danger: #f44336;
   --success: #22c55e;
+  --warning: #f59e0b;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
 }
 a { color: inherit; }
 
-/* Auth */
-.auth-wrap {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-}
-.auth-card {
-  width: 100%;
-  max-width: 380px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 22px;
-}
-.auth-card h1 {
-  margin: 0 0 6px;
-  font-size: 20px;
-}
-.auth-card p { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
-label {
-  display: block;
-  font-size: 12px;
-  color: var(--muted);
-  margin: 10px 0 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-input, select, textarea {
-  width: 100%;
-  background: #0b1220;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  outline: none;
-}
-button {
-  width: 100%;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-button.secondary {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.error {
-  color: var(--danger);
-  font-size: 13px;
-  margin-top: 8px;
-  min-height: 18px;
-}
-
 /* Layout */
 .app {
-  display: none;
+  display: grid;
   grid-template-columns: 240px 1fr;
   min-height: 100vh;
 }
-.app.open { display: grid; }
 .sidebar {
   background: var(--panel);
   border-right: 1px solid var(--border);
@@ -98,49 +39,58 @@ button.secondary {
 }
 .brand {
   font-weight: 800;
-  letter-spacing: 0.2px;
-  margin-bottom: 18px;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+  margin-bottom: 24px;
+  color: #white;
 }
 .nav a {
   display: block;
-  padding: 10px 8px;
+  padding: 12px 10px;
   border-radius: 10px;
   color: var(--muted);
   text-decoration: none;
   font-size: 14px;
+  margin-bottom: 4px;
+  transition: all 0.2s ease;
 }
 .nav a:hover, .nav a.active {
   background: #0c1322;
   color: var(--text);
+  border-left: 3px solid var(--primary);
 }
 .main {
-  padding: 18px;
+  padding: 24px;
 }
 header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
 }
-header h2 { margin: 0; font-size: 18px; }
+header h2 { margin: 0; font-size: 22px; }
 
-/* Cards */
+/* Cards KPIs */
 .cards {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  margin-bottom: 16px;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin-bottom: 24px;
 }
 .card {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 14px;
+  padding: 18px;
 }
-.card small { color: var(--muted); font-size: 12px; }
-.card .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+.card small { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.card .value { font-size: 28px; font-weight: 700; margin-top: 6px; }
+.text-success { color: var(--success); }
+.text-danger { color: var(--danger); }
 
-/* Table */
+/* Tablas */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -150,7 +100,7 @@ table {
   overflow: hidden;
 }
 th, td {
-  padding: 10px 12px;
+  padding: 12px 14px;
   text-align: left;
   border-bottom: 1px solid var(--border);
   font-size: 14px;
@@ -158,152 +108,175 @@ th, td {
 th {
   color: var(--muted);
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  background: #162032;
 }
 tr:hover td { background: #0c1424; }
 
-/* Forms */
+/* Formularios e Importador */
 .form-grid {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
 }
-.actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+label {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
-.icon-btn {
-  width: auto;
-  background: transparent;
+input, select, textarea {
+  width: 100%;
+  background: #0b1220;
+  color: var(--text);
   border: 1px solid var(--border);
-  padding: 6px 10px;
-  font-size: 12px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  outline: none;
 }
-.icon-btn.danger { color: var(--danger); border-color: #5c2323; }
-.icon-btn.primary { background: var(--primary); color: white; border-color: transparent; }
+input:focus, select:focus { border-color: var(--primary); }
+
+button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+button:hover { opacity: 0.9; }
+button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+
+.import-box {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+  background: #111827;
+  margin-top: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.import-box:hover { border-color: var(--primary); }
 
 .toolbar {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: 16px;
   align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
+.search { width: 300px; background: var(--panel); }
 
-.search {
+pre {
   background: #0b1220;
-  color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 10px;
-  width: 260px;
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 12px;
+  color: #cbd5e1;
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow: auto;
 }
 </style>
 </head>
 <body>
 
-<!-- Auth -->
-<div id="auth" class="auth-wrap">
-  <div class="auth-card">
-    <h1>bbddtasaciones</h1>
-    <p>Acceso para usuarios autorizados</p>
-    <label>Usuario</label>
-    <input id="username" placeholder="usuario@email.com" />
-    <label>Contraseña</label>
-    <input id="password" type="password" placeholder="••••••••" />
-    <button id="btnLogin" type="button">Entrar</button>
-    <div id="loginError" class="error"></div>
-    <p style="margin-top:10px;font-size:12px;color:#9aa4b2">Demo: admin / admin</p>
-  </div>
-</div>
-
-<!-- App -->
-<div id="app" class="app">
+<div class="app">
   <aside class="sidebar">
-    <div class="brand">BBDD Tasaciones</div>
+    <div class="brand">📂 Tasaciones BBDD</div>
     <nav class="nav">
       <a data-page="dashboard" class="active" href="#">Dashboard</a>
-      <a data-page="records" href="#">Registros</a>
-      <a data-page="new" href="#">Nuevo registro</a>
-      <a data-page="users" href="#">Usuarios</a>
+      <a data-page="records" href="#">Registros Real-Time</a>
+      <a data-page="new" href="#">Añadir Manual</a>
     </nav>
   </aside>
+
   <main class="main">
     <header>
       <h2 id="pageTitle">Dashboard</h2>
-      <div class="actions">
-        <span id="userBadge" style="color:#9aa4b2;font-size:13px"></span>
-        <button id="btnLogout" class="icon-btn" type="button">Salir</button>
+      <div>
+        <span id="connectionStatus" class="text-danger">● Estado: Comprobando API...</span>
       </div>
     </header>
 
-    <!-- Dashboard -->
     <section id="page-dashboard">
       <div class="cards">
-        <div class="card"><small>Total registros</small><div class="value" id="kpiTotal">0</div></div>
-        <div class="card"><small>En proceso</small><div class="value" id="kpiPending">0</div></div>
-        <div class="card"><small>Finalizados</small><div class="value" id="kpiDone">0</div></div>
-        <div class="card"><small>Alertas</small><div class="value" id="kpiAlerts">0</div></div>
+        <div class="card"><small>Estado Conexión</small><div class="value" id="apiStatus">---</div></div>
+        <div class="card"><small>Frontend Origen</small><div class="value" id="frontendStatus" style="font-size:14px;word-break:break-all;">---</div></div>
       </div>
-      <div class="card">
-        <small style="color:#9aa4b2">Conexión real a API</small>
-        <div class="actions" style="margin-top:8px">
-          <button id="btnPingApi" class="icon-btn primary" type="button">Probar API ahora</button>
-          <button id="btnReload" class="icon-btn" type="button">Recargar dashboard</button>
+
+      <div class="card" style="margin-bottom: 20px;">
+        <h3>📥 Importación Masiva de JSON</h3>
+        <p style="color: var(--muted); font-size: 14px; margin-top: -8px;">
+          Selecciona o arrastra el archivo JSON estructurado con tus tablas de tasaciones para subirlo directamente a PostgreSQL.
+        </p>
+        <div class="import-box" id="dropZone">
+          <p style="margin: 0; font-size: 15px;">👉 Haz clic aquí o arrastra tu archivo <strong>.json</strong></p>
+          <input type="file" id="jsonFileInput" accept=".json" style="display: none;" />
         </div>
-        <pre id="pingResult" style="background:#0b1220;border:1px solid #1f2b3d;border-radius:10px;padding:10px;margin-top:10px;font-size:12px;color:#cbd5e1;min-height:80px;white-space:pre-wrap;"></pre>
+        <div id="importProgress" style="margin-top: 12px; font-size: 14px; display: none;"></div>
+      </div>
+
+      <div class="card">
+        <h3>📋 Registro de operaciones (Logs)</h3>
+        <button id="btnPingApi" type="button">Forzar Test de API</button>
+        <button id="btnReload" class="secondary" type="button">Refrescar Pantalla</button>
+        <pre id="log">Iniciando sistema estático...</pre>
       </div>
     </section>
 
-    <!-- Records list -->
     <section id="page-records" style="display:none">
       <div class="toolbar">
-        <input id="search" class="search" placeholder="Buscar por referencia, propietario o lote..." />
-        <div class="actions">
-          <select id="filterStatus" style="width:auto">
-            <option value="">Todos</option>
-            <option value="Pendiente">Pendiente</option>
-            <option value="En proceso">En proceso</option>
-            <option value="Finalizado">Finalizado</option>
-          </select>
-        </div>
+        <input id="search" class="search" placeholder="Buscar en base de datos real..." />
+        <select id="filterStatus" style="width:auto">
+          <option value="">Todos los estados</option>
+          <option value="Pendiente">Pendiente</option>
+          <option value="En proceso">En proceso</option>
+          <option value="Finalizado">Finalizado</option>
+        </select>
       </div>
       <div style="overflow:auto">
         <table>
           <thead>
-            <tr>
+            `<tr>
               <th>Referencia</th>
               <th>Tipo</th>
               <th>Propietario</th>
-              <th>Lote / Uso</th>
+              <th>Lote / Dirección</th>
               <th>Localidad</th>
               <th>Estado</th>
               <th>Fecha</th>
-            </tr>
+              <th>Valor (€)</th>
+            </tr>`
           </thead>
-          <tbody id="recordsBody"></tbody>
+          <tbody id="recordsBody">
+            <tr><td colspan="8" style="color:var(--muted); text-align:center;">Cargando datos desde PostgREST...</td></tr>
+          </tbody>
         </table>
       </div>
     </section>
 
-    <!-- New record -->
     <section id="page-new" style="display:none">
       <form id="recordForm" class="form-grid" autocomplete="off">
         <div>
-          <label>Referencia</label>
-          <input name="referencia" required />
+          <label>Referencia Catastral / Interna</label>
+          <input name="referencia" placeholder="Ej: BV-2026-001" required />
         </div>
         <div>
-          <label>Tipo</label>
+          <label>Tipo de Inmueble</label>
           <select name="tipo">
             <option>Vivienda</option>
             <option>Local</option>
@@ -314,18 +287,18 @@ tr:hover td { background: #0c1424; }
         </div>
         <div>
           <label>Propietario</label>
-          <input name="propietario" required />
+          <input name="propietario" placeholder="Nombre completo o Razón Social" required />
         </div>
         <div>
-          <label>Lote / Uso</label>
-          <input name="lote" />
+          <label>Lote / Dirección</label>
+          <input name="lote" placeholder="Calle, Nº, Piso o Polígono" />
         </div>
         <div>
           <label>Localidad</label>
-          <input name="localidad" required />
+          <input name="localidad" placeholder="Ej: Almería" required />
         </div>
         <div>
-          <label>Estado</label>
+          <label>Estado del Expediente</label>
           <select name="estado">
             <option>Pendiente</option>
             <option>En proceso</option>
@@ -333,270 +306,17 @@ tr:hover td { background: #0c1424; }
           </select>
         </div>
         <div>
-          <label>Valor estimado (€)</label>
-          <input name="valor" type="number" />
+          <label>Valor de Tasación Estimado (€)</label>
+          <input name="valor" type="number" placeholder="Ej: 150000" required />
         </div>
-        <div style="grid-column: 1 / -1">
-          <button class="primary" type="submit">Guardar registro</button>
+        <div style="grid-column: 1 / -1; margin-top: 10px;">
+          <button type="submit">Enviar Directo a PostgreSQL</button>
         </div>
       </form>
-    </section>
-
-    <!-- Users -->
-    <section id="page-users" style="display:none">
-      <div class="toolbar">
-        <h3 style="margin:0">Usuarios</h3>
-        <button id="btnNewUser" class="icon-btn primary" type="button">Nuevo usuario</button>
-      </div>
-      <div style="overflow:auto">
-        <table>
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Rol</th>
-              <th>Creado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="usersBody"></tbody>
-        </table>
-      </div>
-      <div id="userFormWrap" style="display:none;margin-top:12px">
-        <form id="userForm" class="form-grid" autocomplete="off">
-          <div>
-            <label>Email</label>
-            <input id="uEmail" type="email" required />
-          </div>
-          <div>
-            <label>Contraseña</label>
-            <input id="uPass" type="password" required />
-          </div>
-          <div>
-            <label>Rol</label>
-            <select id="uRole">
-              <option>admin</option>
-              <option>editor</option>
-              <option>viewer</option>
-            </select>
-          </div>
-          <div style="grid-column: 1 / -1">
-            <button class="primary" type="submit">Guardar usuario</button>
-          </div>
-        </form>
-      </div>
     </section>
   </main>
 </div>
 
-<script>
-const LS_KEY = 'bbddtasaciones.session';
-const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:8000' : '';
-
-const state = {
-  user: null,
-  records: [],
-  users: [],
-};
-
-function boot() {
-  const saved = localStorage.getItem(LS_KEY);
-  if (saved) {
-    try { state.user = JSON.parse(saved); } catch (e) {}
-  }
-  state.user ? openApp() : showAuth();
-}
-
-function showAuth() {
-  document.getElementById('auth').style.display = '';
-  document.getElementById('app').classList.remove('open');
-}
-function openApp() {
-  document.getElementById('auth').style.display = 'none';
-  document.getElementById('app').classList.add('open');
-  document.getElementById('userBadge').textContent = state.user?.email || '';
-  navigate('dashboard');
-}
-function logout() {
-  state.user = null;
-  localStorage.removeItem(LS_KEY);
-  showAuth();
-}
-
-function navigate(page) {
-  document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('active', a.dataset.page === page));
-  document.querySelectorAll('section[id^="page-"]').forEach(el => el.style.display = 'none');
-  const el = document.getElementById(`page-${page}`);
-  if (el) el.style.display = '';
-  document.getElementById('pageTitle').textContent =
-    ({ dashboard: 'Dashboard', records: 'Registros', new: 'Nuevo registro', users: 'Usuarios' })[page] || page;
-  if (page === 'dashboard') renderDashboard();
-  if (page === 'records') renderRecords();
-  if (page === 'users') renderUsers();
-}
-
-function loadDemo() {
-  const today = new Date().toISOString().slice(0, 10);
-  state.users = [
-    { email: 'admin@demo', role: 'admin', created: today, password: 'admin' },
-    { email: 'editor@demo', role: 'editor', created: today, password: 'editor' },
-  ];
-  state.records = [
-    { referencia: 'BV-2026-0142', tipo: 'Vivienda', propietario: 'García López', lote: 'Avda. Centro 24, 3B', localidad: 'Madrid', estado: 'Finalizado', fecha: '2026-06-17', valor: 185000 },
-    { referencia: 'BV-2026-0188', tipo: 'Local', propietario: 'Muebles Norte SL', lote: 'Calle Parque 7', localidad: 'Barcelona', estado: 'En proceso', fecha: '2026-06-18', valor: 92000 },
-    { referencia: 'BV-2026-0193', tipo: 'Oficina', propietario: 'Consultora Delta', lote: 'P. Empresarial Norte 4A', localidad: 'Valencia', estado: 'Pendiente', fecha: '2026-06-19', valor: 142500 },
-    { referencia: 'BV-2026-0195', tipo: 'Suelo', propietario: 'Promociones Alba', lote: 'Sector G-12', localidad: 'Sevilla', estado: 'Pendiente', fecha: '2026-06-19', valor: 410000 },
-    { referencia: 'BV-2026-0201', tipo: 'Industrial', propietario: 'Logística Vía', lote: 'Polígono Sur, nave 8', localidad: 'Zaragoza', estado: 'Finalizado', fecha: '2026-06-20', valor: 820000 },
-  ];
-  localStorage.setItem('bbddtasaciones.demo', JSON.stringify({ users: state.users, records: state.records }));
-}
-
-function restoreDemo() {
-  const raw = localStorage.getItem('bbddtasaciones.demo');
-  if (!raw) return false;
-  const data = JSON.parse(raw);
-  state.users = data.users;
-  state.records = data.records;
-  return true;
-}
-
-function toNum(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
-
-function renderDashboard() {
-  if (!state.records.length) {
-    if (!restoreDemo()) loadDemo();
-  }
-  const total = state.records.length;
-  const pending = state.records.filter(r => r.estado === 'Pendiente').length;
-  const done = state.records.filter(r => r.estado === 'Finalizado').length;
-  const alerts = state.users.filter(u => !u.email || !u.password).length;
-  document.getElementById('kpiTotal').textContent = String(total);
-  document.getElementById('kpiPending').textContent = String(pending);
-  document.getElementById('kpiDone').textContent = String(done);
-  document.getElementById('kpiAlerts').textContent = String(alerts);
-}
-
-function renderRecords() {
-  const q = document.getElementById('search').value.trim().toLowerCase();
-  const f = document.getElementById('filterStatus').value;
-  const list = state.records.filter(r => {
-    const matchText = !q || [r.referencia, r.propietario, r.lote, r.localidad].some(v => String(v).toLowerCase().includes(q));
-    const matchStatus = !f || r.estado === f;
-    return matchText && matchStatus;
-  });
-  const tbody = document.getElementById('recordsBody');
-  tbody.innerHTML = list.map(r => `<tr>
-    <td><strong>${escapeHtml(r.referencia)}</strong></td>
-    <td>${escapeHtml(r.tipo)}</td>
-    <td>${escapeHtml(r.propietario)}</td>
-    <td>${escapeHtml(r.lote || '-')}</td>
-    <td>${escapeHtml(r.localidad)}</td>
-    <td><span style="color:${stateColor(r.estado)}">● ${escapeHtml(r.estado)}</span></td>
-    <td>${escapeHtml(r.fecha)}</td>
-  </tr>`).join('') || `<tr><td colspan="7" style="color:#9aa4b2">Sin resultados</td></tr>`;
-}
-
-function renderUsers() {
-  document.getElementById('usersBody').innerHTML = state.users.map((u, i) => `<tr>
-    <td>${escapeHtml(u.email)}</td>
-    <td>${escapeHtml(u.role)}</td>
-    <td>${escapeHtml(u.created)}</td>
-    <td><button data-remove-user="${i}" class="icon-btn danger" type="button">Eliminar</button></td>
-  </tr>`).join('') || `<tr><td colspan="4" style="color:#9aa4b2">Sin usuarios</td></tr>`;
-}
-
-function stateColor(s) {
-  return ({Pendiente: '#f59e0b', 'En proceso': '#3b82f6', Finalizado: '#22c55e'})[s] || '#9aa4b2';
-}
-
-function escapeHtml(str) {
-  return String(str ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
-}
-
-// API ping
-async function pingApi() {
-  const box = document.getElementById('pingResult');
-  if (!API_BASE) { box.textContent = 'API_BASE vacío o no configurado (usa un backend o define els.apiBase en el HTML).'; return; }
-  box.textContent = 'Probando ' + API_BASE + ' ...';
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 12000);
-    const r = await fetch(API_BASE + '/', { signal: ctrl.signal });
-    clearTimeout(t);
-    const text = await r.text();
-    box.textContent = `Status: ${r.status}\n` + text.slice(0, 4000);
-  } catch (e) {
-    box.textContent = 'Error: ' + (e?.message || String(e));
-  }
-}
-
-// Events
-document.getElementById('btnLogin').addEventListener('click', () => {
-  const email = document.getElementById('username').value.trim();
-  const pass = document.getElementById('password').value;
-  if (!email || !pass) { return showLoginError('Completa usuario y contraseña'); }
-  let user = state.users.find(u => u.email === email && u.password === pass);
-  if (!user && email === 'admin' && pass === 'admin') {
-    if (!restoreDemo()) loadDemo();
-    user = state.users.find(u => u.email === 'admin@demo' && u.password === 'admin');
-  }
-  if (!user) return showLoginError('Credenciales inválidas');
-  state.user = user;
-  localStorage.setItem(LS_KEY, JSON.stringify(user));
-  showLoginError('');
-  openApp();
-});
-
-function showLoginError(msg) {
-  document.getElementById('loginError').textContent = msg;
-}
-
-document.getElementById('btnLogout').addEventListener('click', logout);
-document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', e => {
-  e.preventDefault();
-  navigate(a.dataset.page);
-}));
-
-document.getElementById('btnPingApi').addEventListener('click', pingApi);
-
-document.getElementById('recordForm').addEventListener('submit', e => {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const row = Object.fromEntries(fd.entries());
-  row.valor = toNum(row.valor);
-  row.fecha = new Date().toISOString().slice(0, 10);
-  state.records.unshift(row);
-  e.target.reset();
-  alert('Registro guardado (demo local).');
-});
-
-document.getElementById('search').addEventListener('input', renderRecords);
-document.getElementById('filterStatus').addEventListener('change', renderRecords);
-
-document.getElementById('btnNewUser').addEventListener('click', () => {
-  const w = document.getElementById('userFormWrap');
-  w.style.display = w.style.display === 'none' ? '' : 'none';
-});
-
-document.getElementById('userForm').addEventListener('submit', e => {
-  e.preventDefault();
-  const email = document.getElementById('uEmail').value.trim();
-  const pass = document.getElementById('uPass').value;
-  const role = document.getElementById('uRole').value;
-  if (!email || !pass) return;
-  state.users.push({ email, password: pass, role, created: new Date().toISOString().slice(0,10) });
-  document.getElementById('userForm').reset();
-  renderUsers();
-});
-
-document.addEventListener('click', e => {
-  const btn = e.target.closest('button[data-remove-user]');
-  if (!btn) return;
-  const idx = Number(btn.dataset.removeUser);
-  state.users.splice(idx, 1);
-  renderUsers();
-});
-
-boot();
-</script>
+<script src="app.js"></script>
 </body>
 </html>
