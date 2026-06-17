@@ -1,161 +1,225 @@
-:root {
-  --bg: #0b0f19;
-  --panel: #111827;
-  --muted: #9ca3af;
-  --text: #f3f4f6;
-  --accent: #60a5fa;
-  --good: #34d399;
-  --bad: #fb7185;
-  --warn: #fbbf24;
+/* ==========================================
+   CONFIGURACIÓN GENERAL Y FONDO (DARK MODE)
+   ========================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-body.page {
-  margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell,
-    Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background: radial-gradient(1200px 800px at 10% -10%, #0f172a, transparent),
-    radial-gradient(1200px 800px at 110% 10%, #0f172a, transparent),
-    var(--bg);
-  color: var(--text);
+
+body {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+    color: #f8fafc;
+    min-height: 100vh;
+    padding: 20px;
 }
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 24px;
-  background: color-mix(in srgb, var(--panel), transparent 10%);
-  border-bottom: 1px solid #1f2937;
-  backdrop-filter: blur(8px);
+
+.dashboard-wrapper {
+    max-width: 1600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
 }
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
+
+/* Base de los efectos Glassmorphism */
+.glass-effect {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
-.logo {
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #2563eb, #7c3aed);
-  color: white;
-  font-weight: 700;
-  font-size: 13px;
+
+/* Encabezado */
+.main-header {
+    padding: 20px;
+    text-align: center;
 }
-.status-pill {
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid #374151;
-  background: #0f172a;
-  color: var(--muted);
-  font-size: 12px;
+.main-header h1 {
+    font-size: 1.8rem;
+    color: #38bdf8;
 }
-.status-pill[data-state="ok"] {
-  border-color: color-mix(in srgb, var(--good), transparent 60%);
-  color: var(--good);
+
+/* ==========================================
+   SECCIÓN DEL MAPA
+   ========================================== */
+.map-section {
+    width: 100%;
+    height: 450px;
+    overflow: hidden;
+    padding: 10px;
 }
-.status-pill[data-state="error"] {
-  border-color: color-mix(in srgb, var(--bad), transparent 60%);
-  color: var(--bad);
+
+#map {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    background: #111827; /* Fondo neutro mientras carga */
 }
-.container {
-  max-width: 980px;
-  margin: 24px auto;
-  padding: 0 24px;
-  display: grid;
-  gap: 16px;
+
+/* ==========================================
+   AUDITORÍA: RESTRUCTURACIÓN A FICHAS COMPLETAS
+   ========================================== */
+.auditoria-section {
+    width: 100%;
 }
-.panel {
-  background: var(--panel);
-  border: 1px solid #1f2937;
-  border-radius: 14px;
-  padding: 18px;
+
+.section-title {
+    margin-bottom: 15px;
+    padding-left: 5px;
 }
-.panel h2 {
-  margin: 0 0 14px;
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
+
+.section-title h2 {
+    color: #f1f5f9;
+    font-size: 1.5rem;
 }
-.kv {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+
+/* GRID RESPONSIVE: Calcula cuántas columnas caben según el dispositivo */
+.fichas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100%, 1fr)); /* Por defecto ocupan la página completa */
+    gap: 20px;
+    width: 100%;
 }
-@media (max-width: 520px) {
-  .kv { grid-template-columns: 1fr; }
+
+/* Diseño de la Ficha Individual */
+.ficha-auditoria {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
 }
-.label {
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 4px;
+
+.ficha-auditoria:hover {
+    border-color: rgba(56, 189, 248, 0.4);
+    transform: translateY(-2px);
 }
-.value {
-  font-size: 18px;
-  font-weight: 600;
+
+/* Ficha Cabecera: ID, Estados y Fechas */
+.ficha-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 12px;
 }
-.meta {
-  margin-top: 14px;
-  display: grid;
-  gap: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", monospace;
-  font-size: 12px;
-  color: var(--muted);
+
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
 }
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+.badge.id { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+.badge.fecha { background: rgba(255, 255, 255, 0.1); color: #cbd5e1; }
+.badge.estado { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+
+/* Cuerpo de la ficha en formato multi-columna interno */
+.ficha-cuerpo {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 20px;
 }
-.btn {
-  appearance: none;
-  border: 0;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
+
+.datos-grupo {
+    flex: 1 1 calc(50% - 20px); /* 2 columnas de datos en pantallas grandes */
+    min-width: 280px;
 }
-.btn.secondary {
-  background: #111827;
-  border: 1px solid #374151;
-  color: var(--text);
+
+.datos-grupo.completo {
+    flex: 1 1 100%; /* El JSON del parser ocupa el 100% de la ficha */
 }
-.btn:active {
-  transform: translateY(1px);
+
+.datos-grupo h4 {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
 }
-.log {
-  margin-top: 14px;
-  padding: 12px;
-  border-radius: 10px;
-  background: #0b1220;
-  border: 1px solid #1f2937;
-  color: #cbd5e1;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", monospace;
-  font-size: 12px;
-  min-height: 6em;
-  white-space: pre-wrap;
+
+.datos-grupo p {
+    font-size: 1rem;
+    margin-bottom: 6px;
+    color: #e2e8f0;
 }
-.footer {
-  max-width: 980px;
-  margin: 24px auto;
-  padding: 0 24px 36px;
-  color: var(--muted);
-  font-size: 12px;
+
+/* Contenedor del JSON */
+.json-block {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 150px;
+    overflow-y: auto;
 }
-.footer a {
-  color: var(--accent);
-  text-decoration: none;
+
+.json-block code {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    color: #f472b6;
+    white-space: pre-wrap;
+}
+
+/* Botones de Acción de la Ficha */
+.ficha-acciones {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 15px;
+}
+
+.btn-interactuar {
+    background: #0284c7;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.btn-interactuar:hover { background: #0369a1; }
+.btn-interactuar.secundario {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+}
+.btn-interactuar.secundario:hover { background: rgba(255, 255, 255, 0.2); }
+
+.loading-placeholder {
+    padding: 40px;
+    text-align: center;
+    color: #94a3b8;
+}
+
+/* ==========================================
+   MEDIA QUERIES (RESPONSIVE COMPLETO)
+   ========================================== */
+
+/* Pantallas Medianas (Tablets y Laptops pequeñas) */
+@font-face { /* Fix para optimización */ }
+@media (min-width: 992px) {
+    /* En pantallas grandes, si quieres que quepan 2 fichas completas en paralelo, cambia a: */
+    .fichas-grid {
+        grid-template-columns: repeat(auto-fit, minmax(48%, 1fr));
+    }
+}
+
+/* Pantallas Pequeñas (Móviles) */
+@media (max-width: 768px) {
+    body { padding: 10px; }
+    .map-section { height: 320px; }
+    .ficha-cuerpo { flex-direction: column; } /* Todo se vuelve una sola columna vertical */
+    .datos-grupo { flex: 1 1 100%; }
+    .ficha-acciones { flex-direction: column; } /* Botones apilados en móvil */
+    .btn-interactuar { width: 100%; text-align: center; }
 }
