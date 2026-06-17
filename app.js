@@ -249,60 +249,95 @@
   // ==========================================
   // 📥 IMPORTACIÓN INTELIGENTE DE NUEVOS JSON
   // ==========================================
-  const procesarArchivoJSON = (file) => {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        let rawData = JSON.parse(e.target.result);
-        let item = {};
+  // ==========================================
+  // 📥 IMPORTACIÓN MULTI-ARCHIVO JSON (CORREGIDA Y COMPLETA)
+  // ==========================================
+  const procesarArchivoJSON = async (files) => {
+    if (!files || files.length === 0) return;
+    
+    if (!els.importProgress) return;
+    els.importProgress.style.display = 'block';
+    els.importProgress.style.color = 'var(--warning)';
+    
+    let correctos = 0;
+    let fallidos = 0;
+    const totalArchivos = files.length;
 
-        // Verificamos si viene del informe de tasación con aguacates estructural
-        if (rawData.identificacion_informe || rawData.datos_catastrales) {
-          let valorStr = rawData.valores_tasacion?.valor_comparacion?.valor_total || "0";
-          let valorLimpio = Number(valorStr.replace(/\./g, '').split(',')[0].replace(/[^0-9]/g, '')) || 0;
-          
-          // Capturar el nombre del municipio dinámicamente
-          let municipioDinamico = rawData.identificacion_y_localizacion?.paraje || "Almería";
-          let lat = rawData.identificacion_y_localizacion?.coordenadas_gps?.latitud || "36.8381";
-          let lng = rawData.identificacion_y_localizacion?.coordenadas_gps?.longitud || "-2.4597";
+    log(`Iniciando procesamiento masivo de ${totalArchivos} archivos...`);
 
-          item = {
-            referencia: rawData.datos_catastrales?.referencias?.[0]?.referencia_catastral || ("S/R-" + Date.now()),
-            tipo: rawData.identificacion_y_localizacion?.clase_general_inmueble || "Finca Rústica",
-            propietario: rawData.identificacion_informe?.tasador?.nombre || "Técnico Local",
-            localidad: municipioDinamico, // Guardamos la población leída del JSON
-            lote: `${lat},${lng}`,       // Guardamos lat,lng directo para recuperarlo sin llamadas extra
-            estado: "Pendiente",
-            fecha: new Date().toISOString().slice(0, 10),
-            valor: valorLimpio
-          };
-        } else {
-          item = rawData;
-        }
+    // Recorremos cada uno de los archivos cargados uno por uno
+    for (let i = 0; i < totalArchivos; i++) {
+      const file = files[i];
+      els.importProgress.textContent = `Procesando archivo ${i + 1} de ${totalArchivos}: ${file.name}...`;
 
-        if (els.importProgress) {
-          els.importProgress.style.display = 'block';
-          els.importProgress.textContent = 'Enviando y registrando nueva localización en base de datos...';
-        }
+      // Forzamos una Promesa por archivo para poder usar await secuencialmente
+      await new Promise((resolve) => {
+        const reader = new FileReader();
+        
+        reader.onload = async (e) => {
+          try {
+            let rawData = JSON.parse(e.target.result);
+            let item = {};
 
-        const response = await fetch(`${state.apiBase}/importacion_tasaciones`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(item)
-        });
+            // ADAPTADOR: Si es un informe técnico complejo, extraemos los datos clave
+            if (rawData.identificacion_informe || rawData.datos_catastrales) {
+              let valorStr = rawData.valores_tasacion?.valor_comparacion?.valor_total || "0";
+              let valorLimpio = Number(valorStr.replace(/\./g, '').split(',')[0].replace(/[^0-9]/g, '')) || 0;
+              
+              let municipioDinamico = rawData.identificacion_y_localizacion?.paraje || "Almería";
+              let lat = rawData.identificacion_y_localizacion?.coordenadas_gps?.latitud || "36.8381";
+              let lng = rawData.identificacion_y_localizacion?.coordenadas_gps?.longitud || "-2.4597";
 
-        if (response.ok) {
-          els.importProgress.innerHTML = '<strong>✅ ¡Informe y población añadidos con éxito al ecosistema GIS!</strong>';
-          await cargarTasacionesDesdeBBDD();
-        } else {
-          const err = await response.json().catch(() => ({}));
-          els.importProgress.innerHTML = `<span style="color:var(--danger)">❌ Error PostgREST: ${err.message || 'Duplicado'}</span>`;
-        }
-      } catch (err) {
-        alert('Formato JSON inválido: ' + err.message);
-      }
-    };
-    reader.readAsText(file);
+              item = {
+                referencia: rawData.datos_catastrales?.referencias?.[0]?.referencia_catastral || ("S/R-" + Date.now() + "-" + i),
+                tipo: rawData.identificacion_y_localizacion?.clase_general_inmueble || "Finca Rústica",
+                propietario: rawData.identificacion_informe?.tasador?.nombre || "Técnico Local",
+                localidad: municipioDinamico,
+                lote: `${lat},${lng}`, // Guardamos las coordenadas planas en el campo lote
+                estado: "Pendiente",
+                fecha: new Date().toISOString().slice(0, 10),
+                valor: valorLimpio
+              };
+            } else {
+              item = rawData;
+            }
+
+            const response = await fetch(`${state.apiBase}/importacion_tasaciones`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(item)
+            });
+
+            if (response.ok) {
+              correctos++;
+            } else {
+              const err = await response.json().catch(() => ({}));
+              log(`Error en archivo ${file.name}: ${err.message || 'Posible duplicado'}`);
+              fallidos++;
+            }
+          } catch (err) {
+            log(`Error crítico parseando ${file.name}: ${err.message}`);
+            fallidos++;
+          }
+          resolve(); // Continuar con el siguiente archivo del bucle
+        };
+
+        reader.onerror = () => {
+          log(`Error leyendo el archivo físico: ${file.name}`);
+          fallidos++;
+          resolve();
+        };
+
+        reader.readAsText(file);
+      });
+    }
+
+    // Al finalizar todo el lote de archivos
+    els.importProgress.style.color = 'var(--success)';
+    els.importProgress.innerHTML = `<strong>¡Volcado masivo finalizado!</strong><br/>✅ Archivos insertados: ${correctos} | ❌ Errores/Duplicados: ${fallidos}`;
+    log(`Lote completado. Éxitos: ${correctos}. Fallidos: ${fallidos}.`);
+    
+    await cargarTasacionesDesdeBBDD();
   };
 
   const escapeHtml = (str) => String(str ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -314,6 +349,9 @@
     if (target) target.classList.add('active');
   };
 
+  // ==========================================
+  // 🔌 GESTIÓN DE EVENTOS DE INTERFAZ (RESTAURADA)
+  // ==========================================
   const bindEvents = () => {
     if (els.btnLogin) els.btnLogin.addEventListener('click', ejecutarLogin);
     if (els.btnLogout) els.btnLogout.addEventListener('click', () => { localStorage.removeItem('session_user'); location.reload(); });
@@ -328,9 +366,33 @@
     if (els.advStatus) els.advStatus.addEventListener('change', renderSistemaCompleto);
     if (els.advDistanceTown) els.advDistanceTown.addEventListener('change', renderSistemaCompleto);
 
+    // Lógica e interactividad de la zona Drag & Drop con soporte múltiple
     if (els.dropZone && els.jsonFileInput) {
       els.dropZone.addEventListener('click', () => els.jsonFileInput.click());
-      els.jsonFileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) procesarArchivoJSON(e.target.files[0]); });
+      
+      els.jsonFileInput.addEventListener('change', (e) => { 
+        if (e.target.files.length > 0) procesarArchivoJSON(e.target.files); 
+      });
+
+      els.dropZone.addEventListener('dragover', (e) => { 
+        e.preventDefault(); 
+        els.dropZone.style.borderColor = 'var(--primary)'; 
+        els.dropZone.style.background = '#222f43';
+      });
+
+      els.dropZone.addEventListener('dragleave', () => { 
+        els.dropZone.style.borderColor = 'var(--border)'; 
+        els.dropZone.style.background = 'transparent';
+      });
+
+      els.dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        els.dropZone.style.borderColor = 'var(--border)';
+        els.dropZone.style.background = 'transparent';
+        if (e.dataTransfer.files.length > 0) {
+          procesarArchivoJSON(e.dataTransfer.files);
+        }
+      });
     }
   };
 
@@ -341,3 +403,4 @@
 
   document.addEventListener('DOMContentLoaded', init);
 })();
+
