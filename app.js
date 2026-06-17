@@ -4,10 +4,10 @@
     records: [],
     map: null,
     markers: [],
-    heatLayer: null,     // Capa del mapa de calor
-    currentMapMode: 'normal', // 'normal' o 'heat'
+    heatLayer: null,
+    currentMapMode: 'normal',
     poblacionesGps: {},
-    charts: { provincias: null, regimen: null } // Instancias de Chart.js
+    charts: { provincias: null, regimen: null }
   };
 
   const els = {
@@ -20,15 +20,17 @@
     loginError: document.getElementById('loginError'),
     userBadge: document.getElementById('userBadge'),
     kpiTotal: document.getElementById('kpiTotal'),
-    kpiPending: document.getElementById('kpiPending'),
-    kpiDone: document.getElementById('kpiDone'),
+    kpiVolumenEconomico: document.getElementById('kpiVolumenEconomico'),
     advSearch: document.getElementById('advSearch'),
     advType: document.getElementById('advType'),
-    advStatus: document.getElementById('advStatus'),
     advDistanceTown: document.getElementById('advDistanceTown'),
     btnEjecutarFiltro: document.getElementById('btnEjecutarFiltro'),
     recordsBody: document.getElementById('recordsBody'),
     manualRecordForm: document.getElementById('manualRecordForm'),
+    userAdminForm: document.getElementById('userAdminForm'),
+    changePasswordForm: document.getElementById('changePasswordForm'),
+    oldPassword: document.getElementById('oldPassword'),
+    newPassword: document.getElementById('newPassword'),
     dropZone: document.getElementById('dropZone'),
     jsonFileInput: document.getElementById('jsonFileInput'),
     importProgress: document.getElementById('importProgress'),
@@ -40,7 +42,7 @@
   };
 
   // ==========================================
-  // 🔐 ACCESO INFRAESTRUCTURA
+  // 🔐 ACCESO E INFRAESTRUCTURA DE SESIÓN
   // ==========================================
   const ejecutarLogin = async () => {
     const email = els.loginEmail.value.trim();
@@ -65,19 +67,87 @@
     setTimeout(() => {
       inicializarMapaGis();
       cargarTasacionesDesdeBBDD();
-    }, 100);
+    }, 150);
+  };
+
+  const verificarPersistenciaSesion = () => {
+    const sesionGuardada = localStorage.getItem('session_user');
+    if (sesionGuardada) inicializarSesion(JSON.parse(sesionGuardada));
+    else if (els.authView) els.authView.style.display = 'grid';
   };
 
   // ==========================================
-  // 🗺️ GIS MODULE (CON SOPORTE MAPA DE CALOR)
+  // 🔄 MOTORES DE CAMBIO Y ADM DE CLAVES (RESPUESTA A TU PREGUNTA)
+  // ==========================================
+  const handleAutogestionPassword = async (e) => {
+    e.preventDefault();
+    const sesionActual = JSON.parse(localStorage.getItem('session_user'));
+    if (!sesionActual) return;
+
+    const claveVieja = els.oldPassword.value;
+    const claveNueva = els.newPassword.value.trim();
+
+    if (claveNueva.length < 6) {
+      alert("La nueva clave debe tener al menos 6 caracteres.");
+      return;
+    }
+
+    // 1. Validar que conoce su contraseña actual contrastando la API
+    if (sesionActual.password !== claveVieja) {
+      alert("La contraseña actual introducida es errónea.");
+      return;
+    }
+
+    try {
+      // 2. Realizar PATCH selectivo usando el ID de la sesión del usuario activo
+      const res = await fetch(`${state.apiBase}/usuarios?id=eq.${sesionActual.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: claveNueva })
+      });
+
+      if (res.ok) {
+        alert("Contraseña modificada con éxito.");
+        // Sincronizar estado de sesión local
+        sesionActual.password = claveNueva;
+        localStorage.setItem('session_user', JSON.stringify(sesionActual));
+        els.changePasswordForm.reset();
+        document.querySelector('.nav a[data-page="dashboard"]').click();
+      } else {
+        alert("Error al intentar procesar el cambio en la API central.");
+      }
+    } catch {
+      alert("Fallo de enlace con la base de datos.");
+    }
+  };
+
+  const handleAltaUsuarioAdmin = async (e) => {
+    e.preventDefault();
+    const item = Object.fromEntries(new FormData(e.target).entries());
+
+    try {
+      const res = await fetch(`${state.apiBase}/usuarios`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      });
+      if (res.ok) {
+        alert('Nuevo operario indexado con éxito.');
+        e.target.reset();
+        document.querySelector('.nav a[data-page="dashboard"]').click();
+      } else { alert('Error: El email técnico ya existe.'); }
+    } catch { alert('Error de enlace.'); }
+  };
+
+  // ==========================================
+  // 🗺️ GIS MODULE (MAPA OSCURO CORPORATIVO)
   // ==========================================
   const inicializarMapaGis = () => {
     if (state.map || !document.getElementById('map')) return;
-    // Centramos el radar técnico en Almería por defecto
     state.map = L.map('map').setView([36.8381, -2.4597], 10);
     L.tileLayer('https://{s}.tile.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
       attribution: '&copy; CartoDB'
-    }).addTo(state.map); // Capa oscura corporativa elegante
+    }).addTo(state.map);
   };
 
   const calcularDistanciaKm = (lat1, lon1, lat2, lon2) => {
@@ -92,15 +162,13 @@
   // 📊 MOTORES ANALÍTICOS (CHART.JS)
   // ==========================================
   const renderizarGraficasCorporativas = (datosFiltrados) => {
-    // 1. Procesar datos para Municipios / Localidades
     const conteoLocalidades = {};
     const conteoRegimen = { "Secano": 0, "Regadío": 0 };
 
     datosFiltrados.forEach(r => {
-      // Localidades
-      conteoLocalidades[r.localidad] = (conteoLocalidades[r.localidad] || 0) + 1;
-      
-      // Clasificación Secano vs Regadío simplificada para tasadores
+      if (r.localidad) {
+        conteoLocalidades[r.localidad] = (conteoLocalidades[r.localidad] || 0) + 1;
+      }
       if (String(r.tipo).toLowerCase().includes('invernadero') || String(r.tipo).toLowerCase().includes('regadio')) {
         conteoRegimen["Regadío"]++;
       } else {
@@ -108,7 +176,6 @@
       }
     });
 
-    // Gráfico 1: Barras de Poblaciones
     if (state.charts.provincias) state.charts.provincias.destroy();
     const ctxProv = document.getElementById('chartProvincias').getContext('2d');
     state.charts.provincias = new Chart(ctxProv, {
@@ -116,7 +183,7 @@
       data: {
         labels: Object.keys(conteoLocalidades),
         datasets: [{
-          label: 'Fincas Mapeadas',
+          label: 'Fincas',
           data: Object.values(conteoLocalidades),
           backgroundColor: '#3b82f6',
           borderRadius: 4
@@ -130,7 +197,6 @@
       }
     });
 
-    // Gráfico 2: Doughnut de Régimen Hidrológico
     if (state.charts.regimen) state.charts.regimen.destroy();
     const ctxReg = document.getElementById('chartRegimen').getContext('2d');
     state.charts.regimen = new Chart(ctxReg, {
@@ -152,7 +218,7 @@
   };
 
   // ==========================================
-  // 🔄 FILTRADO, MAPA DE CALOR Y TABLA
+  // 🔄 FILTRADO PRINCIPAL Y VOLCADO GIS
   // ==========================================
   const cargarTasacionesDesdeBBDD = async () => {
     try {
@@ -168,7 +234,6 @@
           }
         });
         
-        // Alimentar selector dinámico
         if (els.advDistanceTown) {
           const prev = els.advDistanceTown.value;
           els.advDistanceTown.innerHTML = '<option value="">— Seleccionar Centro —</option>';
@@ -186,14 +251,12 @@
   const renderSistemaCompleto = () => {
     if (!els.recordsBody) return;
 
-    // Limpiar capas del mapa viejas
     state.markers.forEach(m => state.map.removeLayer(m));
     state.markers = [];
     if (state.heatLayer) state.map.removeLayer(state.heatLayer);
 
     const query = els.advSearch ? els.advSearch.value.trim().toLowerCase() : '';
     const filterType = els.advType ? els.advType.value : '';
-    const filterStatus = els.advStatus ? els.advStatus.value : '';
     const centroReferencia = els.advDistanceTown ? els.advDistanceTown.value : '';
 
     let coordenadasCentro = centroReferencia ? state.poblacionesGps[centroReferencia] : null;
@@ -208,29 +271,30 @@
     }).filter(r => {
       const matchText = !query || [r.referencia, r.propietario, r.localidad, r.tipo].some(v => String(v ?? '').toLowerCase().includes(query));
       const matchType = !filterType || r.tipo === filterType;
-      const estadoReal = r.estado === 'Pendiente' ? 'En proceso' : r.estado;
-      const matchStatus = !filterStatus || estadoReal === filterStatus;
-      return matchText && matchType && matchStatus;
+      return matchText && matchType;
     });
 
     if (coordenadasCentro) {
       filtrados.sort((a, b) => (a._distancia === null ? 1 : b._distancia === null ? -1 : a._distancia - b._distancia));
     }
 
-    // Refrescar KPIs de Consola
-    if (els.kpiTotal) els.kpiTotal.textContent = state.records.length;
-    if (els.kpiPending) els.kpiPending.textContent = state.records.filter(r => r.estado !== 'Finalizado').length;
-    if (els.kpiDone) els.kpiDone.textContent = state.records.filter(r => r.estado === 'Finalizado').length;
+    if (els.kpiTotal) els.kpiTotal.textContent = filtrados.length;
+    
+    if (els.kpiVolumenEconomico) {
+      const sumaTotal = filtrados.reduce((acc, current) => acc + (Number(current.valor) || 0), 0);
+      els.kpiVolumenEconomico.textContent = sumaTotal.toLocaleString('es-ES') + ' €';
+    }
 
-    // Dibujar Gráficos Corporativos con la muestra actual
     renderizarGraficasCorporativas(filtrados);
 
-    // Preparar puntos de Calor GIS
     const heatPoints = [];
 
+    if (filtrados.length === 0) {
+      els.recordsBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Sin resultados técnicos en el cuadrante.</td></tr>`;
+      return;
+    }
+
     els.recordsBody.innerHTML = filtrados.map(r => {
-      const estadoReal = r.estado === 'Pendiente' ? 'En proceso' : r.estado;
-      const badgeClass = estadoReal === 'Finalizado' ? 'finalizado' : 'proceso';
       const distTexto = r._distancia !== null ? `${r._distancia.toFixed(2)} Km` : '—';
       const valorEuro = Number(r.valor || 0).toLocaleString('es-ES') + ' €';
 
@@ -239,11 +303,8 @@
         if (c.length === 2) {
           const lat = parseFloat(c[0]);
           const lng = parseFloat(c[1]);
-          
-          // Guardamos para mapa de calor (Lat, Lng, Intensidad basada en valor económico)
-          heatPoints.push([lat, lng, Math.min(r.valor / 50000, 1)]);
+          heatPoints.push([lat, lng, 1.0]);
 
-          // Añadimos marcador clásico (solo visible si estamos en modo normal)
           const marker = L.marker([lat, lng]).bindPopup(`<b>Ref: ${r.referencia}</b><br>${valorEuro}`);
           if (state.currentMapMode === 'normal') marker.addTo(state.map);
           state.markers.push(marker);
@@ -255,37 +316,34 @@
         <td>${escapeHtml(r.tipo)}</td>
         <td>${escapeHtml(r.propietario)}</td>
         <td>${escapeHtml(r.localidad)}</td>
-        <td><span class="badge ${badgeClass}">● ${escapeHtml(estadoReal)}</span></td>
         <td style="color:var(--brand-orange); font-weight:600;">${distTexto}</td>
         <td><strong>${valorEuro}</strong></td>
       </tr>`;
     }).join('');
 
-    // Si está activo el modo térmico, inyectamos la matriz de calor en Leaflet
-    if (state.currentMapMode === 'heat' && heatPoints.length > 0) {
-      state.heatLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15, maxZoom: 12 }).addTo(state.map);
+    if (state.currentMapMode === 'heat' && heatPoints.length > 0 && typeof L.heatLayer === 'function') {
+      state.heatLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15, maxZoom: 10 }).addTo(state.map);
     }
 
-    // Eventos de clic en la fila para abrir ficha de auditoría
     Array.from(els.recordsBody.querySelectorAll('tr')).forEach(tr => {
       tr.addEventListener('click', () => {
-        const item = state.records.find(x => String(x.id) === String(tr.getAttribute('data-id')));
-        if (item) abrirFichaCompleta(item);
+        const targetId = tr.getAttribute('data-id');
+        const item = state.records.find(x => String(x.id) === String(targetId));
+        if (item) abrirVisorFichaCompleta(item);
       });
     });
   };
 
-  const abrirFichaCompleta = (item) => {
-    const estadoReal = item.estado === 'Pendiente' ? 'En proceso' : item.estado;
+  const abrirVisorFichaCompleta = (item) => {
+    if (!els.detailsModal || !els.modalDataContent) return;
     els.modalDataContent.innerHTML = `
       <div class="modal-field"><span>Referencia Catastral</span><p>${escapeHtml(item.referencia)}</p></div>
-      <div class="modal-field"><span>Régimen / Tipo</span><p>${escapeHtml(item.tipo)}</p></div>
-      <div class="modal-field"><span>Propietario Legal</span><p>${escapeHtml(item.propietario)}</p></div>
-      <div class="modal-field"><span>Paraje / Localidad</span><p>${escapeHtml(item.localidad)}</p></div>
-      <div class="modal-field"><span>Ubicación Hardware GPS</span><p>${escapeHtml(item.lote || '—')}</p></div>
-      <div class="modal-field"><span>Fecha Registro</span><p>${escapeHtml(item.fecha || '—')}</p></div>
-      <div class="modal-field"><span>Estado Interno</span><p>● ${escapeHtml(estadoReal)}</p></div>
-      <div class="modal-field"><span>Valoración Adoptada</span><p style="color:var(--success); font-weight:700;">${Number(item.valor || 0).toLocaleString('es-ES')} €</p></div>
+      <div class="modal-field"><span>Clase de Terreno / Régimen</span><p>${escapeHtml(item.tipo)}</p></div>
+      <div class="modal-field"><span>Propietario / Solicitante</span><p>${escapeHtml(item.propietario)}</p></div>
+      <div class="modal-field"><span>Paraje / Ubicación</span><p>${escapeHtml(item.localidad)}</p></div>
+      <div class="modal-field"><span>Coordenadas de Capa (Lat, Lng)</span><p>${escapeHtml(item.lote || '—')}</p></div>
+      <div class="modal-field"><span>Fecha Indexación</span><p>${escapeHtml(item.fecha || '—')}</p></div>
+      <div class="modal-field"><span>Valor Adoptado Real</span><p style="color:var(--success); font-weight:700;">${Number(item.valor || 0).toLocaleString('es-ES')} €</p></div>
     `;
     els.detailsModal.style.display = 'grid';
   };
@@ -295,6 +353,7 @@
     const item = Object.fromEntries(new FormData(e.target).entries());
     item.valor = Number(item.valor) || 0;
     item.fecha = new Date().toISOString().slice(0, 10);
+    item.estado = "Finalizado";
 
     try {
       const res = await fetch(`${state.apiBase}/importacion_tasaciones`, {
@@ -331,11 +390,11 @@
                 propietario: raw.identificacion_informe?.tasador?.nombre || "Técnico Corporativo",
                 localidad: raw.identificacion_y_localizacion?.paraje || "Almería",
                 lote: `${raw.identificacion_y_localizacion?.coordenadas_gps?.latitud || "36.8381"},${raw.identificacion_y_localizacion?.coordenadas_gps?.longitud || "-2.4597"}`,
-                estado: "En proceso",
+                estado: "Finalizado",
                 fecha: new Date().toISOString().slice(0, 10),
                 valor: vNum
               };
-            } else { item = raw; }
+            } else { item = raw; item.estado = "Finalizado"; }
             await fetch(`${state.apiBase}/importacion_tasaciones`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
           } catch {}
           resolve();
@@ -343,7 +402,7 @@
         reader.readAsText(files[i]);
       });
     }
-    els.importProgress.innerHTML = '<strong>✅ Volcado completado. Actualice el filtro del Dashboard para visualizar los nuevos datos geográficos.</strong>';
+    els.importProgress.innerHTML = '<strong>✅ Volcado masivo completado. Haz clic en "Filtrar" para actualizar los gráficos y mapas.</strong>';
     await cargarTasacionesDesdeBBDD();
   };
 
@@ -359,13 +418,18 @@
       a.classList.add('active');
       document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
       document.getElementById(`page-${a.dataset.page}`).classList.add('active');
+      
+      if (a.dataset.page === 'dashboard' && state.map) {
+        setTimeout(() => state.map.invalidateSize(), 50);
+      }
     }));
     
     if (els.btnEjecutarFiltro) els.btnEjecutarFiltro.addEventListener('click', renderSistemaCompleto);
     if (els.manualRecordForm) els.manualRecordForm.addEventListener('submit', handleManualSubmit);
+    if (els.userAdminForm) els.userAdminForm.addEventListener('submit', handleAltaUsuarioAdmin);
+    if (els.changePasswordForm) els.changePasswordForm.addEventListener('submit', handleAutogestionPassword);
     if (els.btnCerrarModal) els.btnCerrarModal.addEventListener('click', () => els.detailsModal.style.display = 'none');
 
-    // Controladores del conmutador de mapas (Normal vs Calor)
     if (els.btnMapNormal) els.btnMapNormal.addEventListener('click', () => {
       state.currentMapMode = 'normal';
       els.btnMapNormal.classList.add('active');
