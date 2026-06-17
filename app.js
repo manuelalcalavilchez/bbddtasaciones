@@ -1,4 +1,3 @@
-
 (function () {
   // Configuración de Endpoints globales del sistema
   const state = {
@@ -87,7 +86,6 @@
 
     try {
       log(`Intentando conectar para el usuario: ${email}...`);
-      // Hacemos una consulta directa filtrando por campos en PostgREST
       const res = await fetch(`${state.apiBase}/usuarios?email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(password)}`);
       
       if (!res.ok) throw new Error('Error de respuesta en el servidor de autenticación.');
@@ -96,7 +94,6 @@
 
       if (userArray.length > 0) {
         const usuarioValido = userArray[0];
-        // Guardamos el estado de la sesión en el LocalStorage
         localStorage.setItem('session_user', JSON.stringify(usuarioValido));
         
         log(`Sesión autorizada. Rol: ${usuarioValido.role}`);
@@ -113,11 +110,9 @@
   const inicializarSesionDeUsuario = (user) => {
     if (els.userBadge) els.userBadge.textContent = `Usuario: ${user.email} (${user.role})`;
     
-    // Transición visual de capas de pantalla
     if (els.authView) els.authView.style.display = 'none';
     if (els.appView) els.appView.classList.add('open');
     
-    // Cargar datos por defecto de la aplicación privada
     navigate('dashboard');
   };
 
@@ -163,8 +158,7 @@
     if (!els.kpiTotal || !els.kpiPending || !els.kpiDone) return;
     
     const total = state.records.length;
-    
-    // CORREGIDO: Nombre de variable unificado sin espacios sueltos
+    // CORREGIDO COMPLETAMENTE: Filtro nativo JS sin interferencias de texto estructurado
     const pendientesOEnProceso = state.records.filter(r => r.estado === 'Pendiente' || r.estado === 'En proceso').length;
     const finalizados = state.records.filter(r => r.estado === 'Finalizado').length;
 
@@ -180,7 +174,6 @@
     if (!els.recordsBody) return;
     
     try {
-      // APUNTAMOS A LA TABLA REAL VISIBLE EN TU POSTGRESQL: importacion_tasaciones
       const response = await fetch(`${state.apiBase}/importacion_tasaciones?order=fecha.desc`);
       
       if (response.ok) {
@@ -237,7 +230,7 @@
     const row = Object.fromEntries(fd.entries());
     
     row.valor = Number(row.valor) || 0;
-    row.fecha = new Date().toISOString().slice(0, 10); // Formato YYYY-MM-DD
+    row.fecha = new Date().toISOString().slice(0, 10);
 
     try {
       const response = await fetch(`${state.apiBase}/importacion_tasaciones`, {
@@ -282,7 +275,6 @@
         for (let i = 0; i < filas.length; i++) {
           const item = filas[i];
           
-          // Formateo y limpieza preventiva
           if (!item.fecha) item.fecha = new Date().toISOString().slice(0, 10);
           item.valor = Number(item.valor) || 0;
 
@@ -304,7 +296,6 @@
         els.importProgress.innerHTML = `<strong>¡Volcado finalizado!</strong><br/>✅ Filas insertadas: ${correctos} | ❌ Errores: ${fallidos}`;
         log(`Importación finalizada. Éxito: ${correctos}. Fallidos: ${fallidos}.`);
         
-        // Refrescar memoria caché global
         await cargarTasacionesDesdeBBDD();
       } catch {
         alert('El archivo no contiene un formato de datos JSON estructuralmente válido.');
@@ -382,7 +373,6 @@
     
     if (els.frontendStatus) els.frontendStatus.textContent = state.frontendBase;
 
-    // Disparadores dinámicos según cambio de vista
     if (page === 'dashboard' || page === 'records') {
       cargarTasacionesDesdeBBDD();
     }
@@ -397,31 +387,25 @@
 
   // Asignación unificada de eventos de usuario
   const bindAllEvents = () => {
-    // Login manual
     if (els.btnLogin) els.btnLogin.addEventListener('click', ejecutarLogin);
     if (els.loginPassword) els.loginPassword.addEventListener('keypress', (e) => { if (e.key === 'Enter') ejecutarLogin(); });
     
-    // Logout
     if (els.btnLogout) els.btnLogout.addEventListener('click', () => {
       localStorage.removeItem('session_user');
       location.reload();
     });
 
-    // Menús de la App
     document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', (e) => {
       e.preventDefault();
       navigate(a.dataset.page);
     }));
 
-    // Búsqueda en tiempo real
     if (els.search) els.search.addEventListener('input', renderRecordsTable);
     if (els.filterStatus) els.filterStatus.addEventListener('change', renderRecordsTable);
 
-    // Formularios
     if (els.recordForm) els.recordForm.addEventListener('submit', handleRecordSubmit);
     if (els.userForm) els.userForm.addEventListener('submit', handleUserSubmit);
 
-    // Botones de diagnóstico
     if (els.btnPingApi) els.btnPingApi.addEventListener('click', checkApiHealth);
     if (els.btnReload) els.btnReload.addEventListener('click', () => location.reload());
     
@@ -429,7 +413,6 @@
       if (els.userFormWrap) els.userFormWrap.style.display = els.userFormWrap.style.display === 'none' ? 'block' : 'none';
     });
 
-    // Zona de arrastre de ficheros JSON (Drag & Drop)
     if (els.dropZone && els.jsonFileInput) {
       els.dropZone.addEventListener('click', () => els.jsonFileInput.click());
       els.jsonFileInput.addEventListener('change', (e) => {
@@ -458,5 +441,3 @@
     init();
   }
 })();
-
-```
