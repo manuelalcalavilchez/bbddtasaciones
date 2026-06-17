@@ -1,317 +1,602 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tasaciones AlcalÃ¡ â Dashboard</title>
-  <style>:root {
-  --bg: #0b0f19;
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>bbddtasaciones — Dashboard</title>
+<style>
+:root {
+  --bg: #0b1120;
   --panel: #111827;
-  --muted: #9ca3af;
-  --text: #f3f4f6;
-  --accent: #60a5fa;
-  --good: #34d399;
-  --bad: #fb7185;
-  --warn: #fbbf24;
+  --panel-2: #0f172a;
+  --border: #1f2b3d;
+  --muted: #9aa4b2;
+  --text: #e5e7eb;
+  --primary: #4f8cff;
+  --danger: #f44336;
+  --success: #22c55e;
 }
 * { box-sizing: border-box; }
-html, body { height: 100%; }
-body.page {
-  margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell,
-    Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background: radial-gradient(1200px 800px at 10% -10%, #0f172a, transparent),
-    radial-gradient(1200px 800px at 110% 10%, #0f172a, transparent),
-    var(--bg);
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: var(--bg);
   color: var(--text);
 }
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 24px;
-  background: color-mix(in srgb, var(--panel), transparent 10%);
-  border-bottom: 1px solid #1f2937;
-  backdrop-filter: blur(8px);
-}
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-}
-.logo {
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #2563eb, #7c3aed);
-  color: white;
-  font-weight: 700;
-  font-size: 13px;
-}
-.status-pill {
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid #374151;
-  background: #0f172a;
-  color: var(--muted);
-  font-size: 12px;
-}
-.status-pill[data-state="ok"] {
-  border-color: color-mix(in srgb, var(--good), transparent 60%);
-  color: var(--good);
-}
-.status-pill[data-state="error"] {
-  border-color: color-mix(in srgb, var(--bad), transparent 60%);
-  color: var(--bad);
-}
-.container {
-  max-width: 980px;
-  margin: 24px auto;
-  padding: 0 24px;
+a { color: inherit; }
+
+/* Auth */
+.auth-wrap {
+  min-height: 100vh;
   display: grid;
-  gap: 16px;
+  place-items: center;
+  padding: 16px;
 }
-.panel {
+.auth-card {
+  width: 100%;
+  max-width: 380px;
   background: var(--panel);
-  border: 1px solid #1f2937;
+  border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 18px;
+  padding: 22px;
 }
-.panel h2 {
-  margin: 0 0 14px;
-  font-size: 14px;
+.auth-card h1 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+.auth-card p { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin: 10px 0 6px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--muted);
 }
-.kv {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-@media (max-width: 520px) {
-  .kv { grid-template-columns: 1fr; }
-}
-.label {
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 4px;
-}
-.value {
-  font-size: 18px;
-  font-weight: 600;
-}
-.meta {
-  margin-top: 14px;
-  display: grid;
-  gap: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", monospace;
-  font-size: 12px;
-  color: var(--muted);
-}
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.btn {
-  appearance: none;
-  border: 0;
-  padding: 10px 12px;
+input, select, textarea {
+  width: 100%;
+  background: #0b1220;
+  color: var(--text);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  padding: 10px 12px;
+  outline: none;
+}
+button {
+  width: 100%;
+  background: var(--primary);
   color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 12px;
   font-weight: 600;
   cursor: pointer;
 }
-.btn.secondary {
-  background: #111827;
-  border: 1px solid #374151;
+button.secondary {
+  background: transparent;
+  border: 1px solid var(--border);
   color: var(--text);
 }
-.btn:active {
-  transform: translateY(1px);
+.error {
+  color: var(--danger);
+  font-size: 13px;
+  margin-top: 8px;
+  min-height: 18px;
 }
-.log {
-  margin-top: 14px;
-  padding: 12px;
+
+/* Layout */
+.app {
+  display: none;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+}
+.app.open { display: grid; }
+.sidebar {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 16px;
+}
+.brand {
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  margin-bottom: 18px;
+}
+.nav a {
+  display: block;
+  padding: 10px 8px;
   border-radius: 10px;
-  background: #0b1220;
-  border: 1px solid #1f2937;
-  color: #cbd5e1;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", monospace;
-  font-size: 12px;
-  min-height: 6em;
-  white-space: pre-wrap;
-}
-.footer {
-  max-width: 980px;
-  margin: 24px auto;
-  padding: 0 24px 36px;
   color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+}
+.nav a:hover, .nav a.active {
+  background: #0c1322;
+  color: var(--text);
+}
+.main {
+  padding: 18px;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+header h2 { margin: 0; font-size: 18px; }
+
+/* Cards */
+.cards {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin-bottom: 16px;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+.card small { color: var(--muted); font-size: 12px; }
+.card .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+th, td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+tr:hover td { background: #0c1424; }
+
+/* Forms */
+.form-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.icon-btn {
+  width: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 6px 10px;
   font-size: 12px;
 }
-.footer a {
-  color: var(--accent);
-  text-decoration: none;
+.icon-btn.danger { color: var(--danger); border-color: #5c2323; }
+.icon-btn.primary { background: var(--primary); color: white; border-color: transparent; }
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.search {
+  background: #0b1220;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  width: 260px;
 }
 </style>
 </head>
-<body class="page">
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo">TA</span>
-      <span>Tasaciones AlcalÃ¡</span>
-    </div>
-    <div class="status-pill" id="connectionStatus" data-state="idle">Conectandoâ¦</div>
-  </header>
-  <main class="container">
-    <section class="panel">
-      <h2>Estado del servicio</h2>
-      <div class="kv">
-        <div>
-          <div class="label">Frontend</div>
-          <div class="value" id="frontendStatus">â</div>
-        </div>
-        <div>
-          <div class="label">API</div>
-          <div class="value" id="apiStatus">â</div>
-        </div>
+<body>
+
+<!-- Auth -->
+<div id="auth" class="auth-wrap">
+  <div class="auth-card">
+    <h1>bbddtasaciones</h1>
+    <p>Acceso para usuarios autorizados</p>
+    <label>Usuario</label>
+    <input id="username" placeholder="usuario@email.com" />
+    <label>Contraseña</label>
+    <input id="password" type="password" placeholder="••••••••" />
+    <button id="btnLogin" type="button">Entrar</button>
+    <div id="loginError" class="error"></div>
+    <p style="margin-top:10px;font-size:12px;color:#9aa4b2">Demo: admin / admin</p>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app" class="app">
+  <aside class="sidebar">
+    <div class="brand">BBDD Tasaciones</div>
+    <nav class="nav">
+      <a data-page="dashboard" class="active" href="#">Dashboard</a>
+      <a data-page="records" href="#">Registros</a>
+      <a data-page="new" href="#">Nuevo registro</a>
+      <a data-page="users" href="#">Usuarios</a>
+    </nav>
+  </aside>
+  <main class="main">
+    <header>
+      <h2 id="pageTitle">Dashboard</h2>
+      <div class="actions">
+        <span id="userBadge" style="color:#9aa4b2;font-size:13px"></span>
+        <button id="btnLogout" class="icon-btn" type="button">Salir</button>
       </div>
-      <div class="meta">
-        <div id="frontendUrl">url: â</div>
-        <div id="apiUrl">api: â</div>
+    </header>
+
+    <!-- Dashboard -->
+    <section id="page-dashboard">
+      <div class="cards">
+        <div class="card"><small>Total registros</small><div class="value" id="kpiTotal">0</div></div>
+        <div class="card"><small>En proceso</small><div class="value" id="kpiPending">0</div></div>
+        <div class="card"><small>Finalizados</small><div class="value" id="kpiDone">0</div></div>
+        <div class="card"><small>Alertas</small><div class="value" id="kpiAlerts">0</div></div>
+      </div>
+      <div class="card">
+        <small style="color:#9aa4b2">Conexión real a API</small>
+        <div class="actions" style="margin-top:8px">
+          <button id="btnPingApi" class="icon-btn primary" type="button">Probar API ahora</button>
+          <button id="btnReload" class="icon-btn" type="button">Recargar dashboard</button>
+        </div>
+        <pre id="pingResult" style="background:#0b1220;border:1px solid #1f2b3d;border-radius:10px;padding:10px;margin-top:10px;font-size:12px;color:#cbd5e1;min-height:80px;white-space:pre-wrap;"></pre>
       </div>
     </section>
-    <section class="panel">
-      <h2>Acciones</h2>
-      <div class="actions">
-        <button class="btn" id="btnPingApi" type="button">Probar API ahora</button>
-        <button class="btn secondary" id="btnReload" type="button">Recargar</button>
+
+    <!-- Records list -->
+    <section id="page-records" style="display:none">
+      <div class="toolbar">
+        <input id="search" class="search" placeholder="Buscar por referencia, propietario o lote..." />
+        <div class="actions">
+          <select id="filterStatus" style="width:auto">
+            <option value="">Todos</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="En proceso">En proceso</option>
+            <option value="Finalizado">Finalizado</option>
+          </select>
+        </div>
       </div>
-      <pre class="log" id="log">Esperando interacciÃ³nâ¦</pre>
+      <div style="overflow:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Referencia</th>
+              <th>Tipo</th>
+              <th>Propietario</th>
+              <th>Lote / Uso</th>
+              <th>Localidad</th>
+              <th>Estado</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody id="recordsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- New record -->
+    <section id="page-new" style="display:none">
+      <form id="recordForm" class="form-grid" autocomplete="off">
+        <div>
+          <label>Referencia</label>
+          <input name="referencia" required />
+        </div>
+        <div>
+          <label>Tipo</label>
+          <select name="tipo">
+            <option>Vivienda</option>
+            <option>Local</option>
+            <option>Oficina</option>
+            <option>Suelo</option>
+            <option>Industrial</option>
+          </select>
+        </div>
+        <div>
+          <label>Propietario</label>
+          <input name="propietario" required />
+        </div>
+        <div>
+          <label>Lote / Uso</label>
+          <input name="lote" />
+        </div>
+        <div>
+          <label>Localidad</label>
+          <input name="localidad" required />
+        </div>
+        <div>
+          <label>Estado</label>
+          <select name="estado">
+            <option>Pendiente</option>
+            <option>En proceso</option>
+            <option>Finalizado</option>
+          </select>
+        </div>
+        <div>
+          <label>Valor estimado (€)</label>
+          <input name="valor" type="number" />
+        </div>
+        <div style="grid-column: 1 / -1">
+          <button class="primary" type="submit">Guardar registro</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Users -->
+    <section id="page-users" style="display:none">
+      <div class="toolbar">
+        <h3 style="margin:0">Usuarios</h3>
+        <button id="btnNewUser" class="icon-btn primary" type="button">Nuevo usuario</button>
+      </div>
+      <div style="overflow:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Rol</th>
+              <th>Creado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+      <div id="userFormWrap" style="display:none;margin-top:12px">
+        <form id="userForm" class="form-grid" autocomplete="off">
+          <div>
+            <label>Email</label>
+            <input id="uEmail" type="email" required />
+          </div>
+          <div>
+            <label>Contraseña</label>
+            <input id="uPass" type="password" required />
+          </div>
+          <div>
+            <label>Rol</label>
+            <select id="uRole">
+              <option>admin</option>
+              <option>editor</option>
+              <option>viewer</option>
+            </select>
+          </div>
+          <div style="grid-column: 1 / -1">
+            <button class="primary" type="submit">Guardar usuario</button>
+          </div>
+        </form>
+      </div>
     </section>
   </main>
-  <footer class="footer">
-    <span>Repositorio: https://github.com/manuelalcalavilchez/bbddtasaciones</span>
-  </footer>
-  <script>(function () {
-  const state = {
-    apiBase: 'https://n8n-postgrest-api.n9xpuu.easypanel.host',
-    frontendBase: location.href,
-  };
+</div>
 
-  const els = {
-    connectionStatus: document.getElementById('connectionStatus'),
-    frontendStatus: document.getElementById('frontendStatus'),
-    apiStatus: document.getElementById('apiStatus'),
-    frontendUrl: document.getElementById('frontendUrl'),
-    apiUrl: document.getElementById('apiUrl'),
-    log: document.getElementById('log'),
-    btnPingApi: document.getElementById('btnPingApi'),
-    btnReload: document.getElementById('btnReload'),
-  };
+<script>
+const LS_KEY = 'bbddtasaciones.session';
+const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:8000' : '';
 
-  const set = (el, text, cls) => {
-    if (!el) return;
-    el.textContent = text;
-    if (cls) {
-      el.className = cls;
-    }
-  };
+const state = {
+  user: null,
+  records: [],
+  users: [],
+};
 
-  const log = (text) => {
-    if (!els.log) return;
-    const lines = [text, els.log.textContent];
-    els.log.textContent = lines.join(`\n`);
-  };
-
-  const setStatus = (el, status, text) => {
-    if (!el) return;
-    el.textContent = status;
-    el.className = 'value ' + (text === 'ok' ? 'text-success' : 'text-danger');
-  };
-
-  const bootstrapFrontend = () => {
-    setStatus(els.frontendStatus, 'servido');
-    if (els.frontendUrl) {
-      els.frontendUrl.textContent = 'url: ' + state.frontendBase;
-    }
-  };
-
-  const summarizeResponse = (res) => {
-    if (!res) {
-      return 'failed';
-    }
-    if (res.ok) {
-      return 'ok';
-    }
-    if (res.status === 0) {
-      return 'unknown';
-    }
-    if (res.status >= 500) {
-      return `server ${res.status}`;
-    }
-    if (res.status >= 400) {
-      return `client ${res.status}`;
-    }
-    return `${res.status}`;
-  };
-
-  const bootstrapApiPing = async () => {
-    if (!els.apiStatus) return;
-    if (!state.apiBase) {
-      setStatus(els.apiStatus, 'api no configurada', 'warn');
-      return;
-    }
-
-    try {
-      const res = await fetch(`${state.apiBase}/`, { method: 'HEAD' });
-      setStatus(els.apiStatus, summarizeResponse(res));
-      log(`api -> ${state.apiBase}`);
-    } catch (error) {
-      setStatus(els.apiStatus, 'error');
-      log(`api error -> ${error}`);
-    }
-  };
-
-  const handlePingApi = async () => {
-    if (!els.apiStatus) return;
-    setStatus(els.apiStatus, 'probando...');
-    await bootstrapApiPing();
-  };
-
-  const init = () => {
-    els.connectionStatus.setAttribute('data-state', 'ok');
-    set(els.connectionStatus, 'ok');
-    bootstrapFrontend();
-    if (els.apiBase) {
-      bootstrapApiPing();
-    }
-    if (els.btnPingApi) {
-      els.btnPingApi.addEventListener('click', handlePingApi);
-    }
-    if (els.btnReload) {
-      els.btnReload.addEventListener('click', () => location.reload());
-    }
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+function boot() {
+  const saved = localStorage.getItem(LS_KEY);
+  if (saved) {
+    try { state.user = JSON.parse(saved); } catch (e) {}
   }
-})();
+  state.user ? openApp() : showAuth();
+}
+
+function showAuth() {
+  document.getElementById('auth').style.display = '';
+  document.getElementById('app').classList.remove('open');
+}
+function openApp() {
+  document.getElementById('auth').style.display = 'none';
+  document.getElementById('app').classList.add('open');
+  document.getElementById('userBadge').textContent = state.user?.email || '';
+  navigate('dashboard');
+}
+function logout() {
+  state.user = null;
+  localStorage.removeItem(LS_KEY);
+  showAuth();
+}
+
+function navigate(page) {
+  document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('active', a.dataset.page === page));
+  document.querySelectorAll('section[id^="page-"]').forEach(el => el.style.display = 'none');
+  const el = document.getElementById(`page-${page}`);
+  if (el) el.style.display = '';
+  document.getElementById('pageTitle').textContent =
+    ({ dashboard: 'Dashboard', records: 'Registros', new: 'Nuevo registro', users: 'Usuarios' })[page] || page;
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'records') renderRecords();
+  if (page === 'users') renderUsers();
+}
+
+function loadDemo() {
+  const today = new Date().toISOString().slice(0, 10);
+  state.users = [
+    { email: 'admin@demo', role: 'admin', created: today, password: 'admin' },
+    { email: 'editor@demo', role: 'editor', created: today, password: 'editor' },
+  ];
+  state.records = [
+    { referencia: 'BV-2026-0142', tipo: 'Vivienda', propietario: 'García López', lote: 'Avda. Centro 24, 3B', localidad: 'Madrid', estado: 'Finalizado', fecha: '2026-06-17', valor: 185000 },
+    { referencia: 'BV-2026-0188', tipo: 'Local', propietario: 'Muebles Norte SL', lote: 'Calle Parque 7', localidad: 'Barcelona', estado: 'En proceso', fecha: '2026-06-18', valor: 92000 },
+    { referencia: 'BV-2026-0193', tipo: 'Oficina', propietario: 'Consultora Delta', lote: 'P. Empresarial Norte 4A', localidad: 'Valencia', estado: 'Pendiente', fecha: '2026-06-19', valor: 142500 },
+    { referencia: 'BV-2026-0195', tipo: 'Suelo', propietario: 'Promociones Alba', lote: 'Sector G-12', localidad: 'Sevilla', estado: 'Pendiente', fecha: '2026-06-19', valor: 410000 },
+    { referencia: 'BV-2026-0201', tipo: 'Industrial', propietario: 'Logística Vía', lote: 'Polígono Sur, nave 8', localidad: 'Zaragoza', estado: 'Finalizado', fecha: '2026-06-20', valor: 820000 },
+  ];
+  localStorage.setItem('bbddtasaciones.demo', JSON.stringify({ users: state.users, records: state.records }));
+}
+
+function restoreDemo() {
+  const raw = localStorage.getItem('bbddtasaciones.demo');
+  if (!raw) return false;
+  const data = JSON.parse(raw);
+  state.users = data.users;
+  state.records = data.records;
+  return true;
+}
+
+function toNum(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+
+function renderDashboard() {
+  if (!state.records.length) {
+    if (!restoreDemo()) loadDemo();
+  }
+  const total = state.records.length;
+  const pending = state.records.filter(r => r.estado === 'Pendiente').length;
+  const done = state.records.filter(r => r.estado === 'Finalizado').length;
+  const alerts = state.users.filter(u => !u.email || !u.password).length;
+  document.getElementById('kpiTotal').textContent = String(total);
+  document.getElementById('kpiPending').textContent = String(pending);
+  document.getElementById('kpiDone').textContent = String(done);
+  document.getElementById('kpiAlerts').textContent = String(alerts);
+}
+
+function renderRecords() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const f = document.getElementById('filterStatus').value;
+  const list = state.records.filter(r => {
+    const matchText = !q || [r.referencia, r.propietario, r.lote, r.localidad].some(v => String(v).toLowerCase().includes(q));
+    const matchStatus = !f || r.estado === f;
+    return matchText && matchStatus;
+  });
+  const tbody = document.getElementById('recordsBody');
+  tbody.innerHTML = list.map(r => `<tr>
+    <td><strong>${escapeHtml(r.referencia)}</strong></td>
+    <td>${escapeHtml(r.tipo)}</td>
+    <td>${escapeHtml(r.propietario)}</td>
+    <td>${escapeHtml(r.lote || '-')}</td>
+    <td>${escapeHtml(r.localidad)}</td>
+    <td><span style="color:${stateColor(r.estado)}">● ${escapeHtml(r.estado)}</span></td>
+    <td>${escapeHtml(r.fecha)}</td>
+  </tr>`).join('') || `<tr><td colspan="7" style="color:#9aa4b2">Sin resultados</td></tr>`;
+}
+
+function renderUsers() {
+  document.getElementById('usersBody').innerHTML = state.users.map((u, i) => `<tr>
+    <td>${escapeHtml(u.email)}</td>
+    <td>${escapeHtml(u.role)}</td>
+    <td>${escapeHtml(u.created)}</td>
+    <td><button data-remove-user="${i}" class="icon-btn danger" type="button">Eliminar</button></td>
+  </tr>`).join('') || `<tr><td colspan="4" style="color:#9aa4b2">Sin usuarios</td></tr>`;
+}
+
+function stateColor(s) {
+  return ({Pendiente: '#f59e0b', 'En proceso': '#3b82f6', Finalizado: '#22c55e'})[s] || '#9aa4b2';
+}
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+}
+
+// API ping
+async function pingApi() {
+  const box = document.getElementById('pingResult');
+  if (!API_BASE) { box.textContent = 'API_BASE vacío o no configurado (usa un backend o define els.apiBase en el HTML).'; return; }
+  box.textContent = 'Probando ' + API_BASE + ' ...';
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 12000);
+    const r = await fetch(API_BASE + '/', { signal: ctrl.signal });
+    clearTimeout(t);
+    const text = await r.text();
+    box.textContent = `Status: ${r.status}\n` + text.slice(0, 4000);
+  } catch (e) {
+    box.textContent = 'Error: ' + (e?.message || String(e));
+  }
+}
+
+// Events
+document.getElementById('btnLogin').addEventListener('click', () => {
+  const email = document.getElementById('username').value.trim();
+  const pass = document.getElementById('password').value;
+  if (!email || !pass) { return showLoginError('Completa usuario y contraseña'); }
+  let user = state.users.find(u => u.email === email && u.password === pass);
+  if (!user && email === 'admin' && pass === 'admin') {
+    if (!restoreDemo()) loadDemo();
+    user = state.users.find(u => u.email === 'admin@demo' && u.password === 'admin');
+  }
+  if (!user) return showLoginError('Credenciales inválidas');
+  state.user = user;
+  localStorage.setItem(LS_KEY, JSON.stringify(user));
+  showLoginError('');
+  openApp();
+});
+
+function showLoginError(msg) {
+  document.getElementById('loginError').textContent = msg;
+}
+
+document.getElementById('btnLogout').addEventListener('click', logout);
+document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', e => {
+  e.preventDefault();
+  navigate(a.dataset.page);
+}));
+
+document.getElementById('btnPingApi').addEventListener('click', pingApi);
+
+document.getElementById('recordForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const row = Object.fromEntries(fd.entries());
+  row.valor = toNum(row.valor);
+  row.fecha = new Date().toISOString().slice(0, 10);
+  state.records.unshift(row);
+  e.target.reset();
+  alert('Registro guardado (demo local).');
+});
+
+document.getElementById('search').addEventListener('input', renderRecords);
+document.getElementById('filterStatus').addEventListener('change', renderRecords);
+
+document.getElementById('btnNewUser').addEventListener('click', () => {
+  const w = document.getElementById('userFormWrap');
+  w.style.display = w.style.display === 'none' ? '' : 'none';
+});
+
+document.getElementById('userForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const email = document.getElementById('uEmail').value.trim();
+  const pass = document.getElementById('uPass').value;
+  const role = document.getElementById('uRole').value;
+  if (!email || !pass) return;
+  state.users.push({ email, password: pass, role, created: new Date().toISOString().slice(0,10) });
+  document.getElementById('userForm').reset();
+  renderUsers();
+});
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('button[data-remove-user]');
+  if (!btn) return;
+  const idx = Number(btn.dataset.removeUser);
+  state.users.splice(idx, 1);
+  renderUsers();
+});
+
+boot();
 </script>
 </body>
 </html>
