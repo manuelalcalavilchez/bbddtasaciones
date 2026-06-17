@@ -31,13 +31,14 @@ function inicializarMapaGis() {
     // Crear objeto mapa apuntando al ID 'map' del HTML
     mapGis = L.map('map').setView(CONFIG.COORDS_DEFECTO, 10);
 
-    // SOLUCIÓN: Usamos el CDN directo de Carto sin subdominios rígidos de servidor ("a.", "b.") 
-    // Añadiendo subdomains parametrizados de forma segura
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 20
-    }).addTo(mapGis);
+ // SOLUCIÓN: Usar la URL directa de Carto sin prefijos de subdominio (a, b, c)
+// Esto evita el error de certificado ERR_CERT_COMMON_NAME_INVALID
+L.tileLayer('https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom: 20,
+    // Opcional: Si quieres mantener el balanceo de carga, usa este formato:
+    // subdomains: 'abcd' // (Pero asegúrate de que la URL empiece con {s}.basemaps...)
+}).addTo(mapGis);
 
     // Forzar redibujado para evitar cortes con el contenedor glassmorphic
     setTimeout(() => {
