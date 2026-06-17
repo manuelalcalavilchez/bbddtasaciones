@@ -1,6 +1,4 @@
-Aquí tienes el archivo **`app.js`** completo, corregido, unificado y con el error de la variable resuelto para que puedas copiarlo y pegarlo directamente sin rastro de fallos sintácticos.
 
-```javascript
 (function () {
   // Configuración de Endpoints globales del sistema
   const state = {
