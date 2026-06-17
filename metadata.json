@@ -1,6 +1,0 @@
-{
-  "name": "Tasaciones Alcalá",
-  "description": "Sistema avanzado de tasación de inmuebles rústicos y urbanos con análisis geoespacial, base de datos de testigos y gestor de expedientes.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
