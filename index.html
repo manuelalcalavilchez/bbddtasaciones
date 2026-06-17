@@ -3,33 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Tasaciones - BBDDTasaciones</title>
+    <title>Dashboard Tasaciones</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <header class="header">
+        <h1>Panel de Control Geoespacial</h1>
+    </header>
 
-    <div class="dashboard-wrapper">
-        <header class="main-header glass-effect">
-            <h1>Panel de Control Geoespacial</h1>
-            <p>Sistema de Auditoría de Tasaciones e Importación JSON</p>
-        </header>
-
-        <section class="map-section glass-effect">
+    <main class="dashboard">
+        <section class="map-container">
             <div id="map"></div>
         </section>
 
-        <section class="auditoria-section">
-            <div class="section-title">
-                <h2>Auditoría de Registro Completo</h2>
-                <p>Historial y metadatos detallados de los elementos validados</p>
-            </div>
-            
-            <div id="contenedor-fichas-auditoria" class="fichas-grid">
-                <div class="glass-effect loading-placeholder">Cargando registros de auditoría...</div>
-            </div>
+        <section class="auditoria">
+            <h2>Auditoría de Registro Completo</h2>
+            <div id="contenedor-fichas" class="fichas-grid">
+                </div>
         </section>
-    </div>
+    </main>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="app.js"></script>
