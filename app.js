@@ -451,59 +451,62 @@
   // ==========================================
   // 📥 COLA DE IMPORTACIONES Y ALTAS DE PERSONAL
   // ==========================================
-  const procesarArchivoJSON = async (file) => {
+const procesarArchivoJSON = async (file) => {
     if (!file || !els.importProgress) return;
     try {
       els.importProgress.textContent = "Analizando e inyectando colecciones en PostgREST...";
       const rawData = JSON.parse(await file.text());
-      
-      // Convertimos a array si es un objeto único
       const rawArray = Array.isArray(rawData) ? rawData : [rawData];
       
-      // Mapeamos y aplanamos los elementos si detectamos el formato del informe técnico
       const dataArray = rawArray.map(item => {
-        // Verificación: si tiene el nodo 'identificacion_informe', es la plantilla compleja
+        // Detectar si es el JSON estructurado de informes de Jorge
         if (item.identificacion_informe && item.valores_tasacion) {
           
-          // 1. Extraer Referencia Catastral (Buscamos en el array de referencias)
           const refObj = item.datos_catastrales?.referencias?.[0];
-          const referencia = refObj?.referencia_catastral || "S/REF-" + Math.floor(Math.random() * 10000);
           
-          // 2. Extraer Tipo de Inmueble
-          const tipo = item.identificacion_y_localizacion?.clase_general_inmueble || "Urbano";
+          // 1. Referencia Catastral
+          const referencia = refObj?.referencia_catastral?.trim() || "S/REF-" + Math.floor(Math.random() * 100000);
           
-          // 3. Extraer Propietario o Solicitante
-          const propietario = item.solicitante_y_finalidad?.solicitante?.nombre || 
-                              item.identificacion_informe?.tasador?.nombre || "Desconocido";
+          // 2. Tipo de Inmueble (Limpieza estricta de cadenas)
+          let tipo = item.identificacion_y_localizacion?.clase_general_inmueble || "Rústico";
+          if (tipo.toLowerCase().includes("rústic")) tipo = "Rústico";
+          if (tipo.toLowerCase().includes("urban")) tipo = "Urbano";
           
-          // 4. Extraer Localidad / Municipio
-          const localidad = item.identificacion_y_localizacion?.municipio || 
-                            item.solicitante_y_finalidad?.solicitante?.municipio || "Almería";
+          // 3. Propietario / Solicitante de respaldo
+          let propietario = item.solicitante_y_finalidad?.solicitante?.nombre?.trim() || 
+                            item.identificacion_informe?.tasador?.nombre?.trim() || "Desconocido";
           
-          // 5. Extraer Estado Operativo del expediente
-          const estado = "Finalizado"; // Al ser un informe con valores concluidos, se asume Finalizado
+          // 4. Localidad / Municipio
+          let localidad = item.identificacion_y_localizacion?.municipio?.trim() || 
+                          item.solicitante_y_finalidad?.solicitante?.municipio?.trim() || "Almería";
+          if (localidad === "") localidad = "Almería"; // Forzar si viene string vacío ""
+
+          // 5. Estado
+          const estado = "Finalizado";
           
-          // 6. Extraer y limpiar Valor Económico
-          // El JSON tiene "146.916,37 €", necesitamos dejarlo como un float puro: 146916.37
+          // 6. Limpieza y conversión del Valor Monetario
           let valorRaw = item.valores_tasacion?.valor_comparacion?.valor_total || "0";
-          let valor = parseFloat(valorRaw.replace(/[.\s€]/g, '').replace(',', '.'));
-          if (isNaN(valor)) valor = 0.00;
+          let valorClean = valorRaw.replace(/[.\s€]/g, '').replace(',', '.');
+          let valor = parseFloat(valorClean);
+          if (isNaN(valor) || valor === 0) {
+            let valorActRaw = item.valores_tasacion?.valor_actualizacion_rentas?.valor_actualizado || "0";
+            valor = parseFloat(valorActRaw.replace(/[.\s€]/g, '').replace(',', '.')) || 0.00;
+          }
           
-          // 7. Extraer Superficie
-          // El JSON tiene "15720" en superficie_catastral como string
-          let superficie = parseFloat(refObj?.superficie_catastral || "0");
+          // 7. Superficie
+          let superficieRaw = refObj?.superficie_catastral || "0";
+          let superficie = parseFloat(superficieRaw) || 0.00;
           
-          // 8. Concatenar Coordenadas GPS para el campo 'lote' -> "latitud,longitud"
+          // 8. Coordenadas GPS -> Lote
           const lat = item.identificacion_y_localizacion?.coordenadas_gps?.latitud || "";
           const lng = item.identificacion_y_localizacion?.coordenadas_gps?.longitud || "";
-          const lote = (lat && lng) ? `${lat},${lng}` : null;
+          const lote = (lat && lng) ? `${lat.trim()},${lng.trim()}` : "36.8381,-2.4597";
           
-          // 9. Extraer observaciones o parajes
-          const paraje = item.identificacion_y_localizacion?.paraje || "";
+          // 9. Observaciones
+          const paraje = item.identificacion_y_localizacion?.paraje || "Sin paraje";
           const descCargas = item.datos_registrales?.fincas?.[0]?.descripcion_registral || "";
           const observaciones = `Paraje: ${paraje}. Obs: ${descCargas}`.slice(0, 500);
 
-          // Retornamos el objeto plano perfectamente estructurado para la tabla SQL
           return {
             referencia,
             tipo,
@@ -518,26 +521,42 @@
           };
         }
         
-        // Si ya era un objeto plano estándar del panel, lo dejamos intacto
-        return item;
+        // Si ya es un objeto plano, asegurar que tiene lo mínimo
+        return {
+          referencia: item.referencia,
+          tipo: item.tipo || "Rústico",
+          propietario: item.propietario || "Desconocido",
+          localidad: item.localidad || "Almería",
+          estado: item.estado || "Finalizado",
+          valor: parseFloat(item.valor) || 0.00,
+          superficie: parseFloat(item.superficie) || 0.00,
+          lote: item.lote || "36.8381,-2.4597",
+          observaciones: item.observaciones || "",
+          fecha: item.fecha || new Date().toISOString()
+        };
       });
 
-      // Envío de los datos limpios a PostgREST
+      // Petición HTTP directa
       const res = await fetch(`${state.apiBase}/importacion_tasaciones`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Prefer': 'resolution=merge-duplicates' 
+        },
         body: JSON.stringify(dataArray)
       });
 
       if (res.ok) {
-        els.importProgress.innerHTML = `<span style="color:var(--success); font-weight:600;">✓ Inyección completada con éxito. ${dataArray.length} expediente(s) procesados.</span>`;
+        els.importProgress.innerHTML = `<span style="color:var(--success); font-weight:600;">✓ Inyección completada con éxito. ${dataArray.length} expediente(s) sincronizados.</span>`;
         await cargarTasacionesDesdeBBDD();
       } else {
-        els.importProgress.innerHTML = `<span style="color:var(--danger); font-weight:600;">✕ Error de persistencia en la API de base de datos.</span>`;
+        const errorText = await res.text();
+        console.error("Detalle del error 400 de PostgREST:", errorText);
+        els.importProgress.innerHTML = `<span style="color:var(--danger); font-weight:600;">✕ Error de persistencia. Revisa la consola (F12).</span>`;
       }
     } catch (e) {
-      console.error(e);
-      els.importProgress.innerHTML = `<span style="color:var(--danger); font-weight:600;">✕ Error estructural: El archivo no cumple el estándar JSON.</span>`;
+      console.error("Fallo de parsing interno:", e);
+      els.importProgress.innerHTML = `<span style="color:var(--danger); font-weight:600;">✕ Error estructural en el procesamiento del JSON.</span>`;
     }
   };
 
