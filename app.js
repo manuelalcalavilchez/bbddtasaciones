@@ -456,8 +456,73 @@
     try {
       els.importProgress.textContent = "Analizando e inyectando colecciones en PostgREST...";
       const rawData = JSON.parse(await file.text());
-      const dataArray = Array.isArray(rawData) ? rawData : [rawData];
+      
+      // Convertimos a array si es un objeto único
+      const rawArray = Array.isArray(rawData) ? rawData : [rawData];
+      
+      // Mapeamos y aplanamos los elementos si detectamos el formato del informe técnico
+      const dataArray = rawArray.map(item => {
+        // Verificación: si tiene el nodo 'identificacion_informe', es la plantilla compleja
+        if (item.identificacion_informe && item.valores_tasacion) {
+          
+          // 1. Extraer Referencia Catastral (Buscamos en el array de referencias)
+          const refObj = item.datos_catastrales?.referencias?.[0];
+          const referencia = refObj?.referencia_catastral || "S/REF-" + Math.floor(Math.random() * 10000);
+          
+          // 2. Extraer Tipo de Inmueble
+          const tipo = item.identificacion_y_localizacion?.clase_general_inmueble || "Urbano";
+          
+          // 3. Extraer Propietario o Solicitante
+          const propietario = item.solicitante_y_finalidad?.solicitante?.nombre || 
+                              item.identificacion_informe?.tasador?.nombre || "Desconocido";
+          
+          // 4. Extraer Localidad / Municipio
+          const localidad = item.identificacion_y_localizacion?.municipio || 
+                            item.solicitante_y_finalidad?.solicitante?.municipio || "Almería";
+          
+          // 5. Extraer Estado Operativo del expediente
+          const estado = "Finalizado"; // Al ser un informe con valores concluidos, se asume Finalizado
+          
+          // 6. Extraer y limpiar Valor Económico
+          // El JSON tiene "146.916,37 €", necesitamos dejarlo como un float puro: 146916.37
+          let valorRaw = item.valores_tasacion?.valor_comparacion?.valor_total || "0";
+          let valor = parseFloat(valorRaw.replace(/[.\s€]/g, '').replace(',', '.'));
+          if (isNaN(valor)) valor = 0.00;
+          
+          // 7. Extraer Superficie
+          // El JSON tiene "15720" en superficie_catastral como string
+          let superficie = parseFloat(refObj?.superficie_catastral || "0");
+          
+          // 8. Concatenar Coordenadas GPS para el campo 'lote' -> "latitud,longitud"
+          const lat = item.identificacion_y_localizacion?.coordenadas_gps?.latitud || "";
+          const lng = item.identificacion_y_localizacion?.coordenadas_gps?.longitud || "";
+          const lote = (lat && lng) ? `${lat},${lng}` : null;
+          
+          // 9. Extraer observaciones o parajes
+          const paraje = item.identificacion_y_localizacion?.paraje || "";
+          const descCargas = item.datos_registrales?.fincas?.[0]?.descripcion_registral || "";
+          const observaciones = `Paraje: ${paraje}. Obs: ${descCargas}`.slice(0, 500);
 
+          // Retornamos el objeto plano perfectamente estructurado para la tabla SQL
+          return {
+            referencia,
+            tipo,
+            propietario,
+            localidad,
+            estado,
+            valor,
+            superficie,
+            lote,
+            observaciones,
+            fecha: new Date().toISOString()
+          };
+        }
+        
+        // Si ya era un objeto plano estándar del panel, lo dejamos intacto
+        return item;
+      });
+
+      // Envío de los datos limpios a PostgREST
       const res = await fetch(`${state.apiBase}/importacion_tasaciones`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
@@ -465,12 +530,13 @@
       });
 
       if (res.ok) {
-        els.importProgress.innerHTML = `<span style="color:var(--success); font-weight:600;">✓ Inyección completada con éxito. Base de datos actualizada.</span>`;
+        els.importProgress.innerHTML = `<span style="color:var(--success); font-weight:600;">✓ Inyección completada con éxito. ${dataArray.length} expediente(s) procesados.</span>`;
         await cargarTasacionesDesdeBBDD();
       } else {
         els.importProgress.innerHTML = `<span style="color:var(--danger); font-weight:600;">✕ Error de persistencia en la API de base de datos.</span>`;
       }
     } catch (e) {
+      console.error(e);
       els.importProgress.innerHTML = `<span style="color:var(--danger); font-weight:600;">✕ Error estructural: El archivo no cumple el estándar JSON.</span>`;
     }
   };
