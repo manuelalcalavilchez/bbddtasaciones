@@ -9,6 +9,7 @@
     
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <style>
         :root {
@@ -53,7 +54,7 @@
         /* Contenedor del Mapa */
         .map-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
         .card-header { padding: 15px 20px; font-weight: 600; font-size: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        #map { height: 350px; width: 100%; z-index: 1; }
+        #map { height: 500px; width: 100%; z-index: 1; aspect-ratio: 1 / 1; }
 
         /* KPIs Laterales */
         .kpi-column { display: flex; flex-direction: column; gap: 15px; }
@@ -116,8 +117,8 @@
         <div class="sidebar">
             <div>
                 <div class="brand">
-                    <span class="material-symbols-outlined" style="color:var(--primary)">layers</span>
-                    <span>GEO-VALUATION</span>
+                    <span class="material-symbols-outlined" style="color:var(--primary)">business</span>
+                    <span>Tecnologia Alcala</span>
                 </div>
                 <div class="nav">
                     <a href="#" class="active" data-page="dashboard">
@@ -125,6 +126,9 @@
                     </a>
                     <a href="#" data-page="records">
                         <span class="material-symbols-outlined">database</span>Expedientes BBDD
+                    </a>
+                    <a href="#" data-page="users">
+                        <span class="material-symbols-outlined">group</span>Gestión Usuarios
                     </a>
                     <a href="#" data-page="import">
                         <span class="material-symbols-outlined">upload_file</span>Importar JSON
@@ -158,6 +162,12 @@
                         </select>
                     </div>
                     <div class="filter-group">
+                        <label>Municipio / Localidad</label>
+                        <select id="advMunicipio">
+                            <option value="">Todos los municipios</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
                         <label>Estado del Expediente</label>
                         <select id="advStatus">
                             <option value="">Todos los estados</option>
@@ -165,6 +175,22 @@
                             <option value="En proceso">En proceso</option>
                             <option value="Finalizado">Finalizado</option>
                         </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Rango de Valor (€)</label>
+                        <input type="text" id="advValueRange" placeholder="ej: 50000-150000">
+                    </div>
+                    <div class="filter-group">
+                        <label>Superficie (m²)</label>
+                        <input type="text" id="advSurfaceRange" placeholder="ej: 1000-5000">
+                    </div>
+                    <div class="filter-group">
+                        <label>Fecha Desde</label>
+                        <input type="date" id="advDateFrom">
+                    </div>
+                    <div class="filter-group">
+                        <label>Fecha Hasta</label>
+                        <input type="date" id="advDateTo">
                     </div>
                     <div class="filter-group">
                         <label>Ordenar por Distancia a:</label>
@@ -178,10 +204,38 @@
                     </div>
                 </div>
 
+                <!-- GRÁFICAS Y VISUALIZACIONES -->
+                <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 25px; margin-bottom: 25px;">
+                    <div class="chart-card" style="background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                        <div class="card-header" style="padding: 0 0 15px 0; border-bottom: 1px solid var(--border); margin-bottom: 15px;">
+                            <span>Distribución por Tipo de Inmueble</span>
+                        </div>
+                        <canvas id="chartType" height="200"></canvas>
+                    </div>
+                    <div class="chart-card" style="background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                        <div class="card-header" style="padding: 0 0 15px 0; border-bottom: 1px solid var(--border); margin-bottom: 15px;">
+                            <span>Distribución por Estado</span>
+                        </div>
+                        <canvas id="chartStatus" height="200"></canvas>
+                    </div>
+                    <div class="chart-card" style="background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                        <div class="card-header" style="padding: 0 0 15px 0; border-bottom: 1px solid var(--border); margin-bottom: 15px;">
+                            <span>Top 10 Municipios por Nº Expedientes</span>
+                        </div>
+                        <canvas id="chartMunicipios" height="200"></canvas>
+                    </div>
+                    <div class="chart-card" style="background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                        <div class="card-header" style="padding: 0 0 15px 0; border-bottom: 1px solid var(--border); margin-bottom: 15px;">
+                            <span>Evolución Valor vs Superficie</span>
+                        </div>
+                        <canvas id="chartValorSuperficie" height="200"></canvas>
+                    </div>
+                </div>
+
                 <div class="dashboard-grid">
                     <div class="map-card">
                         <div class="card-header">
-                            <span>Visualización de Capas Catastrales (GIS)</span>
+                            <span>Visualización GIS</span>
                             <span id="mapCounter" style="font-size:12px; color:var(--primary)">0 marcadores activos</span>
                         </div>
                         <div id="map"></div>
@@ -227,22 +281,137 @@
 
             </div>
 
+            <div id="page-records" class="view-section">
+                <h2 style="margin-bottom:20px;">Base de Datos de Históricos</h2>
+                <p style="color:var(--text-muted); margin-bottom:20px;">Consulta directa a la relación public.importacion_tasaciones.</p>
+                <div class="table-card">
+                    <div class="card-header">Listado Completo de Expedientes</div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Referencia Catastral / ID</th>
+                                    <th>Clase Inmueble</th>
+                                    <th>Propietario / Solicitante</th>
+                                    <th>Paraje / Lote</th>
+                                    <th>Dirección Mapeada</th>
+                                    <th>Estado</th>
+                                    <th>Distancia Centro</th>
+                                    <th>Valor Adoptado</th>
+                                    <th>Fecha</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recordsBodyFull">
+                                <tr><td colspan="10" style="text-align:center; color:var(--text-muted)">Cargando registros desde PostgreSQL...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-users" class="view-section">
+                <h2 style="margin-bottom:20px;">Gestión de Usuarios</h2>
+                <div class="search-panel" style="margin-bottom:20px;">
+                    <div class="filter-group">
+                        <label>Buscar Usuario</label>
+                        <input type="text" id="userSearch" placeholder="Email, nombre...">
+                    </div>
+                    <div class="filter-group">
+                        <label>Rol</label>
+                        <select id="userRoleFilter">
+                            <option value="">Todos los roles</option>
+                            <option value="admin">Administrador</option>
+                            <option value="tasador">Tasador</option>
+                            <option value="cliente">Cliente</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-card">
+                    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>Usuarios del Sistema</span>
+                        <button id="btnAddUser" style="background:var(--primary); color:white; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:600;">
+                            <span class="material-symbols-outlined" style="vertical-align:middle;">person_add</span> Nuevo Usuario
+                        </button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Email</th>
+                                    <th>Nombre</th>
+                                    <th>Rol</th>
+                                    <th>Activo</th>
+                                    <th>Último Acceso</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersBody">
+                                <tr><td colspan="7" style="text-align:center; color:var(--text-muted)">Cargando usuarios...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <div id="page-import" class="view-section">
                 <h2 style="margin-bottom:20px;">Importador Estructural de Tasaciones</h2>
                 <div class="dropzone-container" id="dropZone">
                     <span class="material-symbols-outlined">cloud_upload</span>
-                    <h3>Arrastra el informe técnico (.json) aquí</h3>
-                    <p style="color:var(--text-muted); font-size:14px; margin-top:5px;">Soporta archivos estructurales completos (PRINT-V1...)</p>
-                    <input type="file" id="jsonFileInput" style="display:none" accept=".json">
+                    <h3>Arrastra los informes técnicos (.json) aquí</h3>
+                    <p style="color:var(--text-muted); font-size:14px; margin-top:5px;">Soporta múltiples archivos. Selección múltiple permitida.</p>
+                    <input type="file" id="jsonFileInput" style="display:none" accept=".json" multiple>
                 </div>
                 <div id="importProgress" style="background:var(--bg-card); padding:20px; border-radius:12px; border:1px solid var(--border); display:none;"></div>
             </div>
 
-            <div id="page-records" class="view-section">
-                <h2 style="margin-bottom:20px;">Base de Datos de Históricos</h2>
-                <p style="color:var(--text-muted); margin-bottom:20px;">Consulta directa a la relación public.importacion_tasaciones.</p>
-                </div>
+        </div>
+    </div>
 
+    <!-- MODAL DETALLE TASACIÓN -->
+    <div id="detailModal" class="auth-container" style="display:none; z-index: 10000;">
+        <div class="auth-card" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="margin:0;">Ficha Completa de Tasación</h2>
+                <button id="closeDetailModal" style="background:none; border:none; font-size:24px; cursor:pointer; color:var(--text-muted);">&times;</button>
+            </div>
+            <div id="detailContent"></div>
+        </div>
+    </div>
+
+    <!-- MODAL USUARIO -->
+    <div id="userModal" class="auth-container" style="display:none; z-index: 10000;">
+        <div class="auth-card" style="max-width: 500px;">
+            <h2 id="userModalTitle" style="text-align:center; margin:0;">Nuevo Usuario</h2>
+            <div id="userModalError" style="color:var(--danger); font-size:13px; text-align:center;"></div>
+            <div class="filter-group">
+                <label>Email</label>
+                <input type="email" id="userEmail" placeholder="usuario@tecnologiaalcala.es">
+            </div>
+            <div class="filter-group">
+                <label>Contraseña</label>
+                <input type="password" id="userPassword" placeholder="••••••••">
+            </div>
+            <div class="filter-group">
+                <label>Nombre Completo</label>
+                <input type="text" id="userName" placeholder="Juan Pérez">
+            </div>
+            <div class="filter-group">
+                <label>Rol</label>
+                <select id="userRole">
+                    <option value="tasador">Tasador</option>
+                    <option value="admin">Administrador</option>
+                    <option value="cliente">Cliente</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>
+                    <input type="checkbox" id="userActive" checked> Activo
+                </label>
+            </div>
+            <button id="btnSaveUser" style="background-color: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; width:100%;">Guardar</button>
+            <button id="btnCancelUser" style="background-color: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; width:100%; margin-top:10px;">Cancelar</button>
         </div>
     </div>
 
