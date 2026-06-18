@@ -11,7 +11,7 @@
     users: []
   };
 
-  // ===== MAPEO DE ELEMENTOS DEL DOM (Estructura index.html) =====
+  // ===== MAPEO DE ELEMENTOS DEL DOM =====
   const els = {
     authView: document.getElementById('auth-view'),
     appView: document.getElementById('app-view'),
@@ -168,7 +168,7 @@
   // ==========================================
   const inicializarMapaGis = () => {
     if (state.map || !document.getElementById('map')) return;
-    state.map = L.map('map').setView([36.8381, -2.4597], 10); // Centrado por defecto en Almería
+    state.map = L.map('map').setView([36.8381, -2.4597], 10);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap'
     }).addTo(state.map);
@@ -379,7 +379,6 @@
       </tr>`;
     }).join('');
 
-    // Escucha activa de clics en filas de tabla corta
     els.recordsBody.querySelectorAll('tr[data-id]').forEach(tr => {
       tr.addEventListener('click', () => mostrarDetalleTasacion(tr.getAttribute('data-id')));
     });
@@ -405,14 +404,12 @@
       </tr>`;
     }).join('');
 
-    // Escucha activa de clics en la tabla de Base de Datos global
     els.recordsBodyFull.querySelectorAll('tr[data-id]').forEach(tr => {
-      tr.addEventListener('click', (e) => {
+      tr.addEventListener('click', () => {
         mostrarDetalleTasacion(tr.getAttribute('data-id'));
       });
-      // Asegurar que pinchar directamente en el botón también funcione limpiamente
       tr.querySelector('.btn-view-ficha')?.addEventListener('click', (e) => {
-        e.stopPropagation(); // Evitamos duplicidad de llamada por burbujeo
+        e.stopPropagation(); 
         mostrarDetalleTasacion(tr.getAttribute('data-id'));
       });
     });
@@ -449,42 +446,54 @@
   };
 
   // ==========================================
-  // 📥 COLA DE IMPORTACIONES Y ALTAS DE PERSONAL
+  // 📥 MODULO DE IMPORTACIÓN INTELIGENTE (ADAPTADOR JSON)
   // ==========================================
-const procesarArchivoJSON = async (file) => {
-    if (!file || !els.importProgress) return;
+  const procesarMultiplesArchivosJSON = async (fileList) => {
+    if (!els.importProgress) return;
+    const totalArchivos = fileList.length;
+    let exitos = 0;
+
+    els.importProgress.innerHTML = `Preparando la inyección de ${totalArchivos} archivo(s)...`;
+
+    for (let i = 0; i < totalArchivos; i++) {
+      els.importProgress.textContent = `Procesando archivo ${i + 1} de ${totalArchivos}...`;
+      const resultado = await procesarArchivoJSON(fileList[i]); 
+      if (resultado) exitos++;
+    }
+
+    if (exitos > 0) {
+      els.importProgress.innerHTML = `<span style="color:var(--success); font-weight:600;">✓ Proceso masivo terminado: ${exitos} de ${totalArchivos} archivo(s) sincronizados con éxito.</span>`;
+      await cargarTasacionesDesdeBBDD();
+    } else {
+      els.importProgress.innerHTML = `<span style="color:var(--danger); font-weight:600;">✕ No se ha podido importar ningún archivo válido. Revisa la consola.</span>`;
+    }
+  };
+
+  const procesarArchivoJSON = async (file) => {
+    if (!file) return false;
     try {
-      els.importProgress.textContent = "Analizando e inyectando colecciones en PostgREST...";
       const rawData = JSON.parse(await file.text());
       const rawArray = Array.isArray(rawData) ? rawData : [rawData];
       
       const dataArray = rawArray.map(item => {
-        // Detectar si es el JSON estructurado de informes de Jorge
         if (item.identificacion_informe && item.valores_tasacion) {
-          
           const refObj = item.datos_catastrales?.referencias?.[0];
           
-          // 1. Referencia Catastral
           const referencia = refObj?.referencia_catastral?.trim() || "S/REF-" + Math.floor(Math.random() * 100000);
           
-          // 2. Tipo de Inmueble (Limpieza estricta de cadenas)
           let tipo = item.identificacion_y_localizacion?.clase_general_inmueble || "Rústico";
           if (tipo.toLowerCase().includes("rústic")) tipo = "Rústico";
           if (tipo.toLowerCase().includes("urban")) tipo = "Urbano";
           
-          // 3. Propietario / Solicitante de respaldo
           let propietario = item.solicitante_y_finalidad?.solicitante?.nombre?.trim() || 
                             item.identificacion_informe?.tasador?.nombre?.trim() || "Desconocido";
           
-          // 4. Localidad / Municipio
           let localidad = item.identificacion_y_localizacion?.municipio?.trim() || 
                           item.solicitante_y_finalidad?.solicitante?.municipio?.trim() || "Almería";
-          if (localidad === "") localidad = "Almería"; // Forzar si viene string vacío ""
+          if (localidad === "") localidad = "Almería"; 
 
-          // 5. Estado
           const estado = "Finalizado";
           
-          // 6. Limpieza y conversión del Valor Monetario
           let valorRaw = item.valores_tasacion?.valor_comparacion?.valor_total || "0";
           let valorClean = valorRaw.replace(/[.\s€]/g, '').replace(',', '.');
           let valor = parseFloat(valorClean);
@@ -493,37 +502,24 @@ const procesarArchivoJSON = async (file) => {
             valor = parseFloat(valorActRaw.replace(/[.\s€]/g, '').replace(',', '.')) || 0.00;
           }
           
-          // 7. Superficie
           let superficieRaw = refObj?.superficie_catastral || "0";
           let superficie = parseFloat(superficieRaw) || 0.00;
           
-          // 8. Coordenadas GPS -> Lote
           const lat = item.identificacion_y_localizacion?.coordenadas_gps?.latitud || "";
           const lng = item.identificacion_y_localizacion?.coordenadas_gps?.longitud || "";
           const lote = (lat && lng) ? `${lat.trim()},${lng.trim()}` : "36.8381,-2.4597";
           
-          // 9. Observaciones
           const paraje = item.identificacion_y_localizacion?.paraje || "Sin paraje";
           const descCargas = item.datos_registrales?.fincas?.[0]?.descripcion_registral || "";
           const observaciones = `Paraje: ${paraje}. Obs: ${descCargas}`.slice(0, 500);
 
           return {
-            referencia,
-            tipo,
-            propietario,
-            localidad,
-            estado,
-            valor,
-            superficie,
-            lote,
-            observaciones,
-            fecha: new Date().toISOString()
+            referencia, tipo, propietario, localidad, estado, valor, superficie, lote, observaciones, fecha: new Date().toISOString()
           };
         }
         
-        // Si ya es un objeto plano, asegurar que tiene lo mínimo
         return {
-          referencia: item.referencia,
+          referencia: item.referencia || "S/REF-" + Math.floor(Math.random() * 100000),
           tipo: item.tipo || "Rústico",
           propietario: item.propietario || "Desconocido",
           localidad: item.localidad || "Almería",
@@ -536,30 +532,28 @@ const procesarArchivoJSON = async (file) => {
         };
       });
 
-      // Petición HTTP directa
       const res = await fetch(`${state.apiBase}/importacion_tasaciones`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Prefer': 'resolution=merge-duplicates' 
-        },
+        headers: { 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
         body: JSON.stringify(dataArray)
       });
 
       if (res.ok) {
-        els.importProgress.innerHTML = `<span style="color:var(--success); font-weight:600;">✓ Inyección completada con éxito. ${dataArray.length} expediente(s) sincronizados.</span>`;
-        await cargarTasacionesDesdeBBDD();
+        return true;
       } else {
         const errorText = await res.text();
-        console.error("Detalle del error 400 de PostgREST:", errorText);
-        els.importProgress.innerHTML = `<span style="color:var(--danger); font-weight:600;">✕ Error de persistencia. Revisa la consola (F12).</span>`;
+        console.error("Detalle del error de PostgREST en este archivo:", errorText);
+        return false;
       }
     } catch (e) {
-      console.error("Fallo de parsing interno:", e);
-      els.importProgress.innerHTML = `<span style="color:var(--danger); font-weight:600;">✕ Error estructural en el procesamiento del JSON.</span>`;
+      console.error("Fallo de parsing interno en este archivo:", e);
+      return false;
     }
   };
 
+  // ==========================================
+  // 👥 GESTIÓN DE OPERARIOS Y ALTAS
+  // ==========================================
   const cargarUsuarios = async () => {
     if (!els.usersBody) return;
     try {
@@ -594,11 +588,10 @@ const procesarArchivoJSON = async (file) => {
           <div style="font-weight:600; color:#e2e8f0;">${escapeHtml(u.email)}</div>
           <div style="font-size:11px; color:var(--text-muted); margin-top:2px; font-weight:500;">Rol asignado: ${escapeHtml(u.rol || 'tasador')}</div>
         </td>
-        <td style="text-align:center;"><button class="btn-del-user" data-id="${u.id}" style="background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.2); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; transition: var(--transition);">Eliminar</button></td>
+        <td style="text-align:center;"><button class="btn-del-user" data-id="${u.id}" style="background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.2); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;">Eliminar</button></td>
       </tr>
     `).join('');
 
-    // Adjuntar listeners de eliminación por ID
     els.usersBody.querySelectorAll('.btn-del-user').forEach(btn => {
       btn.addEventListener('click', () => eliminarUsuarioBBDD(btn.getAttribute('data-id')));
     });
@@ -640,7 +633,7 @@ const procesarArchivoJSON = async (file) => {
   };
 
   // ==========================================
-  // ⚙️ INICIALIZACIÓN MÓDULO LISTENERS GLOBAL
+  // ⚙️ INICIALIZACIÓN GLOBAL DE EVENTOS
   // ==========================================
   const inicializarEventosGlobales = () => {
     if (els.btnLogin) els.btnLogin.addEventListener('click', ejecutarLogin);
@@ -663,11 +656,9 @@ const procesarArchivoJSON = async (file) => {
       });
     }
 
-    // Búsqueda en tiempo real de usuarios
     if (els.userSearch) els.userSearch.addEventListener('input', renderUsuarios);
     if (els.userRoleFilter) els.userRoleFilter.addEventListener('change', renderUsuarios);
 
-    // Comportamiento del modal
     if (els.btnCerrarModal) els.btnCerrarModal.addEventListener('click', () => els.modalFicha?.classList.remove('open'));
     if (els.modalFicha) {
       els.modalFicha.addEventListener('click', (e) => {
@@ -675,23 +666,22 @@ const procesarArchivoJSON = async (file) => {
       });
     }
 
-    // Drag & Drop modular
     if (els.dropZone && els.jsonFileInput) {
       els.dropZone.addEventListener('click', () => els.jsonFileInput.click());
       els.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropZone.classList.add('drag-over'); });
       els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('drag-over'));
+      
       els.dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         els.dropZone.classList.remove('drag-over');
-        if (e.dataTransfer.files.length) procesarArchivoJSON(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files.length) procesarMultiplesArchivosJSON(e.dataTransfer.files);
       });
       els.jsonFileInput.addEventListener('change', (e) => {
-        if (e.target.files.length) procesarArchivoJSON(e.target.files[0]);
+        if (e.target.files.length) procesarMultiplesArchivosJSON(e.target.files);
       });
     }
   };
 
-  // Arranque seguro de ciclo de vida de la SPA
   document.addEventListener('DOMContentLoaded', () => {
     inicializarNavegacionSPA();
     inicializarEventosGlobales();
