@@ -1,17 +1,17 @@
 (function () {
+  // ===== ESTADO CENTRALIZADO DE LA APLICACIÓN SPA =====
   const state = {
     apiBase: 'https://n8n-postgrest-api.n9xpuu.easypanel.host',
-    frontendBase: location.href,
     records: [],
     filteredRecords: [], 
     map: null,
     markers: [],
     poblacionesGps: {},
     charts: {},
-    users: [],
-    editingUserId: null
+    users: []
   };
 
+  // ===== MAPEO DE ELEMENTOS DEL DOM (Estructura index.html) =====
   const els = {
     authView: document.getElementById('auth-view'),
     appView: document.getElementById('app-view'),
@@ -52,12 +52,14 @@
     userRoleFilter: document.getElementById('userRoleFilter'),
     usersBody: document.getElementById('usuariosBody'),          
     usuariosMsg: document.getElementById('usuariosMsg'),
+    btnCancelarUser: document.getElementById('btnCancelarUser'),
     
     modalFicha: document.getElementById('modal-ficha'),
     modalContenido: document.getElementById('modal-contenido'),
     btnCerrarModal: document.getElementById('btnCerrarModal'),
   };
 
+  // ===== FUNCIONES UTILIDADES Y LIMPIEZA DE CADENAS =====
   const escapeHtml = (str) => String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const formatEuro = (val) => Number(val || 0).toLocaleString('es-ES') + ' €';
 
@@ -87,7 +89,7 @@
   };
 
   // ==========================================
-  // 🔐 AUTENTICACIÓN
+  // 🔐 CONTROL DE ACCESO (AUTENTICACIÓN)
   // ==========================================
   const ejecutarLogin = async () => {
     if (!els.loginEmail || !els.loginPassword) return;
@@ -98,7 +100,7 @@
     try {
       const res = await fetch(`${state.apiBase}/usuarios?email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(password)}`);
       if (!res.ok) {
-        if (els.loginError) els.loginError.textContent = 'Error de comunicación.';
+        if (els.loginError) els.loginError.textContent = 'Error crítico de comunicación con el backend.';
         return;
       }
       const userArray = await res.json();
@@ -106,15 +108,15 @@
         localStorage.setItem('session_user', JSON.stringify(userArray[0]));
         inicializarSessionDeUsuario(userArray[0]);
       } else {
-        if (els.loginError) els.loginError.textContent = 'Credenciales no válidas.';
+        if (els.loginError) els.loginError.textContent = 'Credenciales técnicas incorrectas.';
       }
     } catch (err) {
-      if (els.loginError) els.loginError.textContent = 'Fallo de red.';
+      if (els.loginError) els.loginError.textContent = 'Fallo de conexión o red inalcanzable.';
     }
   };
 
   const inicializarSessionDeUsuario = (user) => {
-    if (els.userBadge) els.userBadge.textContent = `${user.email} (${user.rol || 'tasador'})`;
+    if (els.userBadge) els.userBadge.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">account_circle</span> ${escapeHtml(user.email)} (${escapeHtml(user.rol || 'tasador')})`;
     if (els.authView) els.authView.style.display = 'none';
     if (els.appView) els.appView.style.display = 'flex';
     
@@ -138,7 +140,7 @@
     location.reload();
   };
 
-  const inicializarNavegacion = () => {
+  const inicializarNavegacionSPA = () => {
     const links = document.querySelectorAll('.nav a[data-target]');
     const sections = document.querySelectorAll('.view-section');
 
@@ -162,11 +164,11 @@
   };
 
   // ==========================================
-  // 🗺️ MAPA GIS Y ENTORNO GEOGRÁFICO
+  // 🗺️ ENTORNO GEOGRÁFICO (LEAFLET GIS)
   // ==========================================
   const inicializarMapaGis = () => {
     if (state.map || !document.getElementById('map')) return;
-    state.map = L.map('map').setView([36.8381, -2.4597], 10);
+    state.map = L.map('map').setView([36.8381, -2.4597], 10); // Centrado por defecto en Almería
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap'
     }).addTo(state.map);
@@ -208,7 +210,7 @@
   };
 
   // ==========================================
-  // 📊 RENDERIZADO DE GRÁFICAS (CHART.JS)
+  // 📊 COMPONENTES ANALÍTICOS (CHART.JS V4)
   // ==========================================
   const destroyCharts = () => {
     Object.values(state.charts).forEach(c => c.destroy());
@@ -258,17 +260,21 @@
     }
 
     if (ctxScatter) {
-      const scatterData = dataSrc.filter(r => r.valor && r.superficie).map(r => ({ x: Number(r.superficie), y: Number(r.valor) })).slice(0, 150);
+      const scatterData = dataSrc
+        .filter(r => r.valor && r.superficie && !isNaN(r.valor) && !isNaN(r.superficie))
+        .map(r => ({ x: Number(r.superficie), y: Number(r.valor) }))
+        .slice(0, 200);
+
       state.charts.valorSuperficie = new Chart(ctxScatter, {
         type: 'scatter',
         data: { datasets: [{ label: 'Valor (€) vs Superficie (m²)', data: scatterData, backgroundColor: 'rgba(59, 130, 246, 0.6)' }] },
-        options: { responsive: true, aspectRatio: 2, plugins: { legend: { labels: { color: '#f8fafc' } } } }
+        options: { responsive: true, aspectRatio: 2, plugins: { legend: { labels: { color: '#f8fafc' } } }, scales: { x: { ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8' } } } }
       });
     }
   };
 
   // ==========================================
-  // 📑 PROCESADO Y APERTURA DE FICHAS (CORREGIDO)
+  // 📑 MANIPULACIÓN DE TABLAS Y APERTURA DE FICHAS
   // ==========================================
   const cargarTasacionesDesdeBBDD = async () => {
     try {
@@ -291,7 +297,7 @@
         renderRecordsFull();
       }
     } catch (error) {
-      console.error("Error en BBDD:", error);
+      console.error("Error leyendo PostgREST:", error);
     }
   };
 
@@ -342,7 +348,7 @@
     if (els.mapCounter) els.mapCounter.textContent = `${state.filteredRecords.length} marcadores activos`;
 
     if (state.filteredRecords.length === 0) {
-      els.recordsBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Ningún expediente coincide.</td></tr>`;
+      els.recordsBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:24px;">Ninguna tasación coincide con los filtros establecidos.</td></tr>`;
       destroyCharts();
       return;
     }
@@ -361,7 +367,6 @@
         }
       }
 
-      // IMPORTANTE: id o referencia metido de forma estricta en el dataset
       const uid = r.id || r.referencia;
       return `<tr data-id="${escapeHtml(uid)}">
         <td><strong>${escapeHtml(r.referencia)}</strong></td>
@@ -374,7 +379,7 @@
       </tr>`;
     }).join('');
 
-    // ENGANCHE DIRECTO DE EVENTOS CLICK PARA ABRIR FICHA EN LA TABLA DEL PANEL
+    // Escucha activa de clics en filas de tabla corta
     els.recordsBody.querySelectorAll('tr[data-id]').forEach(tr => {
       tr.addEventListener('click', () => mostrarDetalleTasacion(tr.getAttribute('data-id')));
     });
@@ -396,18 +401,24 @@
         <td><span class="badge ${badgeClass}">● ${escapeHtml(r.estado)}</span></td>
         <td><strong>${formatEuro(r.valor)}</strong></td>
         <td>${escapeHtml(r.fecha ? r.fecha.slice(0,10) : '—')}</td>
-        <td><button style="background:var(--primary); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Ver</button></td>
+        <td><button class="btn-view-ficha" style="background:var(--primary); color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:600; font-size:12px;">Ver Ficha</button></td>
       </tr>`;
     }).join('');
 
-    // ENGANCHE EN LA BASE DE DATOS COMPLETA
+    // Escucha activa de clics en la tabla de Base de Datos global
     els.recordsBodyFull.querySelectorAll('tr[data-id]').forEach(tr => {
-      tr.addEventListener('click', () => mostrarDetalleTasacion(tr.getAttribute('data-id')));
+      tr.addEventListener('click', (e) => {
+        mostrarDetalleTasacion(tr.getAttribute('data-id'));
+      });
+      // Asegurar que pinchar directamente en el botón también funcione limpiamente
+      tr.querySelector('.btn-view-ficha')?.addEventListener('click', (e) => {
+        e.stopPropagation(); // Evitamos duplicidad de llamada por burbujeo
+        mostrarDetalleTasacion(tr.getAttribute('data-id'));
+      });
     });
   };
 
   const mostrarDetalleTasacion = (uid) => {
-    // Buscar por string o número de forma segura
     const record = state.records.find(r => String(r.id) === String(uid) || String(r.referencia) === String(uid));
     if (!record) return;
 
@@ -418,32 +429,32 @@
     if (!els.modalContenido || !els.modalFicha) return;
 
     els.modalContenido.innerHTML = `
-      <h3 style="font-size:18px; font-weight:700; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:8px;">Detalle del Expediente</h3>
+      <h3 style="font-size:18px; font-weight:700; margin-bottom:18px; border-bottom:1px solid var(--border); padding-bottom:10px;">Ficha Técnica de Expediente</h3>
       <div class="modal-grid">
-        <div class="modal-field"><label>Referencia</label><div style="font-weight:600; margin-top:3px;">${escapeHtml(record.referencia)}</div></div>
-        <div class="modal-field"><label>Tipo de Inmueble</label><div style="margin-top:3px;">${escapeHtml(record.tipo)}</div></div>
+        <div class="modal-field"><label>Referencia Catastral / Interna</label><div style="font-weight:600; margin-top:3px; color:var(--primary);">${escapeHtml(record.referencia)}</div></div>
+        <div class="modal-field"><label>Tipología Constructiva</label><div style="margin-top:3px;">${escapeHtml(record.tipo)}</div></div>
         <div class="modal-field"><label>Propietario / Solicitante</label><div style="margin-top:3px;">${escapeHtml(record.propietario)}</div></div>
-        <div class="modal-field"><label>Municipio / Localidad</label><div style="margin-top:3px;">${escapeHtml(record.localidad)}</div></div>
-        <div class="modal-field"><label>Estado</label><div style="margin-top:3px;"><span class="badge ${record.estado === 'Finalizado' ? 'finalizado' : (record.estado === 'En proceso' ? 'proceso' : 'pendiente')}">${escapeHtml(record.estado)}</span></div></div>
-        <div class="modal-field"><label>Valor de Tasación</label><div style="font-weight:700; color:var(--success); margin-top:3px;">${formatEuro(record.valor)}</div></div>
-        <div class="modal-field"><label>Superficie (m²)</label><div style="margin-top:3px;">${escapeHtml(record.superficie || '—')} m²</div></div>
-        <div class="modal-field"><label>Fecha Registro</label><div style="margin-top:3px;">${escapeHtml(record.fecha ? record.fecha.slice(0,10) : '—')}</div></div>
-        <div class="modal-field"><label>Latitud</label><div style="margin-top:3px;">${lat}</div></div>
-        <div class="modal-field"><label>Longitud</label><div style="margin-top:3px;">${lng}</div></div>
-        <div class="modal-field" style="grid-column: 1 / -1;"><label>Ubicación / Paraje / Lote</label><div style="margin-top:3px;">${escapeHtml(record.lote || '—')}</div></div>
-        <div class="modal-field" style="grid-column: 1 / -1;"><label>Observaciones</label><div style="margin-top:3px; font-style:italic; color:#cbd5e1;">${escapeHtml(record.observaciones || 'Sin observaciones.')}</div></div>
+        <div class="modal-field"><label>Término Municipal</label><div style="margin-top:3px;">${escapeHtml(record.localidad)}</div></div>
+        <div class="modal-field"><label>Estado Operativo</label><div style="margin-top:3px;"><span class="badge ${record.estado === 'Finalizado' ? 'finalizado' : (record.estado === 'En proceso' ? 'proceso' : 'pendiente')}">${escapeHtml(record.estado)}</span></div></div>
+        <div class="modal-field"><label>Valor Concluido (€)</label><div style="font-weight:700; color:var(--success); margin-top:3px;">${formatEuro(record.valor)}</div></div>
+        <div class="modal-field"><label>Superficie Útil Computable</label><div style="margin-top:3px; font-weight:600;">${escapeHtml(record.superficie || '—')} m²</div></div>
+        <div class="modal-field"><label>Fecha Entrada</label><div style="margin-top:3px;">${escapeHtml(record.fecha ? record.fecha.slice(0,10) : '—')}</div></div>
+        <div class="modal-field"><label>Coordenada Latitud (WGS84)</label><div style="margin-top:3px; color:var(--text-muted); font-family:monospace;">${lat}</div></div>
+        <div class="modal-field"><label>Coordenada Longitud (WGS84)</label><div style="margin-top:3px; color:var(--text-muted); font-family:monospace;">${lng}</div></div>
+        <div class="modal-field" style="grid-column: 1 / -1;"><label>Localización / Paraje / Lote Geográfico</label><div style="margin-top:3px;">${escapeHtml(record.lote || '—')}</div></div>
+        <div class="modal-field" style="grid-column: 1 / -1;"><label>Observaciones del Tasador Técnico</label><div style="margin-top:3px; font-style:italic; color:#cbd5e1; line-height:1.4;">${escapeHtml(record.observaciones || 'Sin observaciones documentadas.')}</div></div>
       </div>
     `;
     els.modalFicha.classList.add('open');
   };
 
   // ==========================================
-  // 📥 IMPORTACIONES Y USUARIOS
+  // 📥 COLA DE IMPORTACIONES Y ALTAS DE PERSONAL
   // ==========================================
   const procesarArchivoJSON = async (file) => {
     if (!file || !els.importProgress) return;
     try {
-      els.importProgress.textContent = "Procesando...";
+      els.importProgress.textContent = "Analizando e inyectando colecciones en PostgREST...";
       const rawData = JSON.parse(await file.text());
       const dataArray = Array.isArray(rawData) ? rawData : [rawData];
 
@@ -454,13 +465,13 @@
       });
 
       if (res.ok) {
-        els.importProgress.innerHTML = `<span style="color:var(--success)">¡Completado!</span>`;
+        els.importProgress.innerHTML = `<span style="color:var(--success); font-weight:600;">✓ Inyección completada con éxito. Base de datos actualizada.</span>`;
         await cargarTasacionesDesdeBBDD();
       } else {
-        els.importProgress.innerHTML = `<span style="color:var(--danger)">Error de inserción.</span>`;
+        els.importProgress.innerHTML = `<span style="color:var(--danger); font-weight:600;">✕ Error de persistencia en la API de base de datos.</span>`;
       }
     } catch (e) {
-      els.importProgress.innerHTML = `<span style="color:var(--danger)">Error de formato.</span>`;
+      els.importProgress.innerHTML = `<span style="color:var(--danger); font-weight:600;">✕ Error estructural: El archivo no cumple el estándar JSON.</span>`;
     }
   };
 
@@ -472,20 +483,40 @@
         state.users = await response.json();
         renderUsuarios();
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Error al leer operarios:", e); }
   };
 
   const renderUsuarios = () => {
     if (!els.usersBody) return;
-    els.usersBody.innerHTML = state.users.map(u => `
+    
+    const query = els.userSearch?.value?.trim().toLowerCase() || '';
+    const roleFilter = els.userRoleFilter?.value || '';
+
+    const usuariosFiltrados = state.users.filter(u => {
+      const matchEmail = !query || u.email.toLowerCase().includes(query);
+      const matchRol = !roleFilter || u.rol === roleFilter;
+      return matchEmail && matchRol;
+    });
+
+    if (usuariosFiltrados.length === 0) {
+      els.usersBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:var(--text-muted); padding:16px;">Ningún operario coincide con la búsqueda.</td></tr>`;
+      return;
+    }
+
+    els.usersBody.innerHTML = usuariosFiltrados.map(u => `
       <tr>
         <td>
-          <div style="font-weight:600;">${escapeHtml(u.email)}</div>
-          <div style="font-size:11px; color:var(--text-muted);">Rol: ${escapeHtml(u.rol || 'tasador')}</div>
+          <div style="font-weight:600; color:#e2e8f0;">${escapeHtml(u.email)}</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:2px; font-weight:500;">Rol asignado: ${escapeHtml(u.rol || 'tasador')}</div>
         </td>
-        <td><button class="btn-del-user" data-id="${u.id}" style="background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.2); padding:5px 10px; border-radius:6px; cursor:pointer;">Eliminar</button></td>
+        <td style="text-align:center;"><button class="btn-del-user" data-id="${u.id}" style="background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.2); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; transition: var(--transition);">Eliminar</button></td>
       </tr>
     `).join('');
+
+    // Adjuntar listeners de eliminación por ID
+    els.usersBody.querySelectorAll('.btn-del-user').forEach(btn => {
+      btn.addEventListener('click', () => eliminarUsuarioBBDD(btn.getAttribute('data-id')));
+    });
   };
 
   const guardarUsuarioBBDD = async (e) => {
@@ -505,17 +536,32 @@
       if (res.ok) {
         document.getElementById('form-usuario')?.reset();
         await cargarUsuarios();
+        if (els.usuariosMsg) els.usuariosMsg.innerHTML = `<span style="color:var(--success)">✓ Operario creado con éxito.</span>`;
+      } else {
+        if (els.usuariosMsg) els.usuariosMsg.innerHTML = `<span style="color:var(--danger)">✕ Error al guardar el operario.</span>`;
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const eliminarUsuarioBBDD = async (id) => {
+    if (!confirm('¿Estás seguro de que deseas revocar el acceso a este operario?')) return;
+    try {
+      const res = await fetch(`${state.apiBase}/usuarios?id=eq.${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        await cargarUsuarios();
+        if (els.usuariosMsg) els.usuariosMsg.innerHTML = `<span style="color:var(--warning)">✓ Operario eliminado del sistema.</span>`;
       }
     } catch (err) { console.error(err); }
   };
 
   // ==========================================
-  // ⚙️ INICIALIZACIÓN DE LISTENERS
+  // ⚙️ INICIALIZACIÓN MÓDULO LISTENERS GLOBAL
   // ==========================================
   const inicializarEventosGlobales = () => {
     if (els.btnLogin) els.btnLogin.addEventListener('click', ejecutarLogin);
     if (els.btnLogout) els.btnLogout.addEventListener('click', ejecutarLogout);
     if (els.btnAplicarFiltros) els.btnAplicarFiltros.addEventListener('click', ejecutarFiltradoYRenderizado);
+    
     if (els.btnBorrarFiltros) {
       els.btnBorrarFiltros.addEventListener('click', () => {
         document.querySelectorAll('.panel-filtros input, .panel-filtros select').forEach(i => i.value = '');
@@ -525,7 +571,18 @@
 
     const userForm = document.getElementById('form-usuario');
     if (userForm) userForm.addEventListener('submit', guardarUsuarioBBDD);
+    if (els.btnCancelarUser) {
+      els.btnCancelarUser.addEventListener('click', () => {
+        userForm?.reset();
+        if (els.usuariosMsg) els.usuariosMsg.textContent = '';
+      });
+    }
 
+    // Búsqueda en tiempo real de usuarios
+    if (els.userSearch) els.userSearch.addEventListener('input', renderUsuarios);
+    if (els.userRoleFilter) els.userRoleFilter.addEventListener('change', renderUsuarios);
+
+    // Comportamiento del modal
     if (els.btnCerrarModal) els.btnCerrarModal.addEventListener('click', () => els.modalFicha?.classList.remove('open'));
     if (els.modalFicha) {
       els.modalFicha.addEventListener('click', (e) => {
@@ -533,11 +590,14 @@
       });
     }
 
+    // Drag & Drop modular
     if (els.dropZone && els.jsonFileInput) {
       els.dropZone.addEventListener('click', () => els.jsonFileInput.click());
-      els.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); });
+      els.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropZone.classList.add('drag-over'); });
+      els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('drag-over'));
       els.dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
+        els.dropZone.classList.remove('drag-over');
         if (e.dataTransfer.files.length) procesarArchivoJSON(e.dataTransfer.files[0]);
       });
       els.jsonFileInput.addEventListener('change', (e) => {
@@ -546,8 +606,9 @@
     }
   };
 
+  // Arranque seguro de ciclo de vida de la SPA
   document.addEventListener('DOMContentLoaded', () => {
-    inicializarNavegacion();
+    inicializarNavegacionSPA();
     inicializarEventosGlobales();
     verificarPersistenciaSesion();
   });
