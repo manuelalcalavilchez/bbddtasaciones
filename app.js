@@ -3,7 +3,7 @@
     apiBase: 'https://n8n-postgrest-api.n9xpuu.easypanel.host',
     frontendBase: location.href,
     records: [],
-    filteredRecords: [], // Almacén dinámico para las gráficas y mapas
+    filteredRecords: [], 
     map: null,
     markers: [],
     poblacionesGps: {},
@@ -12,13 +12,10 @@
     editingUserId: null
   };
 
-  // Mapeo unificado sincronizado al 100% con los IDs de tu index.html
   const els = {
-    // Vistas principales
     authView: document.getElementById('auth-view'),
     appView: document.getElementById('app-view'),
     
-    // Login
     loginEmail: document.getElementById('loginEmail'),
     loginPassword: document.getElementById('loginPassword'),
     btnLogin: document.getElementById('btnLogin'),
@@ -26,16 +23,13 @@
     loginError: document.getElementById('loginError'),
     userBadge: document.getElementById('userBadge'),
 
-    // KPIs Dashboard
     kpiTotal: document.getElementById('kpiTotal'),
     kpiPending: document.getElementById('kpiPending'),
     kpiDone: document.getElementById('kpiDone'),
 
-    // Botones de control de Filtros (Asegúrate de que existan en el HTML estos IDs)
     btnAplicarFiltros: document.getElementById('btnAplicarFiltros'), 
     btnBorrarFiltros: document.getElementById('btnBorrarFiltros'),
 
-    // Filtros Avanzados (Sección Dashboard)
     advSearch: document.getElementById('advSearch'),
     advType: document.getElementById('advType'),
     advMunicipio: document.getElementById('advMunicipio'),
@@ -47,22 +41,18 @@
     advDistanceTown: document.getElementById('advDistanceTown'),
     mapCounter: document.getElementById('mapCounter'),
 
-    // Tablas contenedoras
-    recordsBody: document.getElementById('recordsBody'),         // Dashboard
-    recordsBodyFull: document.getElementById('recordsBodyFull'), // Base de Datos Completa
+    recordsBody: document.getElementById('recordsBody'),         
+    recordsBodyFull: document.getElementById('recordsBodyFull'), 
 
-    // Dropzone / Importación
     dropZone: document.getElementById('dropZone'),
     jsonFileInput: document.getElementById('jsonFileInput'),
     importProgress: document.getElementById('importProgress'),
 
-    // Gestión de Usuarios
     userSearch: document.getElementById('userSearch'),
     userRoleFilter: document.getElementById('userRoleFilter'),
     usersBody: document.getElementById('usuariosBody'),          
     usuariosMsg: document.getElementById('usuariosMsg'),
     
-    // Modales (Ficha detalle e Info de usuario)
     modalFicha: document.getElementById('modal-ficha'),
     modalContenido: document.getElementById('modal-contenido'),
     btnCerrarModal: document.getElementById('btnCerrarModal'),
@@ -240,8 +230,6 @@
       valorSuperficie: document.getElementById('chartValorSuperficie')?.getContext('2d'),
     };
     const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16'];
-
-    // 🌟 AHORA USA UNICAMENTE STATE.FILTEREDRECORDS
     const dataSrc = state.filteredRecords;
 
     if (ctx.type) {
@@ -353,7 +341,6 @@
         actualizarSelectorPoblaciones();
         actualizarSelectorMunicipios();
         
-        // Carga inicial: datos filtrados = datos totales
         state.filteredRecords = [...state.records];
         ejecutarFiltradoYRenderizado();
         renderRecordsFull();
@@ -368,7 +355,7 @@
     state.markers.forEach(m => state.map?.removeLayer(m));
     state.markers = [];
 
-    const query = els.advSearch?.value.trim().toLowerCase() || '';
+    const query = els.advSearch?.value?.trim().toLowerCase() || '';
     const filterType = els.advType?.value || '';
     const filterMunicipio = els.advMunicipio?.value || '';
     const filterStatus = els.advStatus?.value || '';
@@ -383,7 +370,6 @@
       coordenadasCentro = state.poblacionesGps[centroReferencia];
     }
 
-    // Guardamos los resultados del filtro en state.filteredRecords
     state.filteredRecords = state.records.map(r => {
       let distancia = null;
       if (r.lote && coordenadasCentro) {
@@ -414,7 +400,6 @@
       });
     }
 
-    // Actualización de KPIs en base al set total estático
     if (els.kpiTotal) els.kpiTotal.textContent = state.records.length;
     if (els.kpiPending) els.kpiPending.textContent = state.records.filter(r => r.estado !== 'Finalizado').length;
     if (els.kpiDone) els.kpiDone.textContent = state.records.filter(r => r.estado === 'Finalizado').length;
@@ -422,11 +407,10 @@
 
     if (state.filteredRecords.length === 0) {
       els.recordsBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Ningún expediente coincide con los criterios seleccionados.</td></tr>`;
-      destroyCharts(); // Destruye para no mostrar información desactualizada
+      destroyCharts();
       return;
     }
 
-    // Renderizado de tabla y mapa con state.filteredRecords
     els.recordsBody.innerHTML = state.filteredRecords.map(r => {
       const badgeClass = r.estado === 'Finalizado' ? 'finalizado' : (r.estado === 'En proceso' ? 'proceso' : 'pendiente');
       const distTexto = r._distancia !== null ? `${r._distancia.toFixed(2)} Km` : '—';
@@ -458,12 +442,10 @@
       tr.addEventListener('click', () => mostrarDetalleTasacion(tr.dataset.id));
     });
 
-    // 🌟 RE-RENDERIZAR GRÁFICAS CON LOS NUEVOS DATOS FILTRADOS
     renderCharts();
   };
 
   const limpiarTodosLosFiltros = () => {
-    // Restablecer los valores de los inputs de filtrado avanzados
     if (els.advSearch) els.advSearch.value = '';
     if (els.advType) els.advType.value = '';
     if (els.advMunicipio) els.advMunicipio.value = '';
@@ -474,14 +456,13 @@
     if (els.advDateTo) els.advDateTo.value = '';
     if (els.advDistanceTown) els.advDistanceTown.value = '';
 
-    // Devolver el estado filtrado al estado inicial completo y pintar
     state.filteredRecords = [...state.records];
     ejecutarFiltradoYRenderizado();
   };
 
   const renderRecordsFull = () => {
     if (!els.recordsBodyFull) return;
-    const query = els.userSearch?.value.trim().toLowerCase() || '';
+    const query = els.userSearch?.value?.trim().toLowerCase() || '';
     
     let filtrados = state.records.filter(r => {
       return !query || [r.referencia, r.propietario, r.localidad, r.tipo].some(v => String(v ?? '').toLowerCase().includes(query));
@@ -600,7 +581,7 @@
   const renderUsuarios = () => {
     if (!els.usersBody) return;
 
-    const query = els.userSearch?.value.trim().toLowerCase() || '';
+    const query = els.userSearch?.value?.trim().toLowerCase() || '';
     const rolFilter = els.userRoleFilter?.value || '';
 
     const filtrados = state.users.filter(u => {
@@ -610,20 +591,20 @@
     });
 
     if (filtrados.length === 0) {
-      els.usersBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:var(--text-muted);">No se encontraron usuarios.</td></tr>`;
+      els.usersBody.innerHTML = `<tr><td colspan=\"2\" style=\"text-align:center; color:var(--text-muted);\">No se encontraron usuarios.</td></tr>`;
       return;
     }
 
     els.usersBody.innerHTML = filtrados.map(u => `
       <tr>
         <td>
-          <div style="font-weight:600;">${escapeHtml(u.email)}</div>
-          <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Rol: ${escapeHtml(u.rol || 'tasador')}</div>
+          <div style=\"font-weight:600;\">${escapeHtml(u.email)}</div>
+          <div style=\"font-size:11px; color:var(--text-muted); margin-top:2px;\">Rol: ${escapeHtml(u.rol || 'tasador')}</div>
         </td>
         <td>
-          <div style="display:flex; gap:6px;">
-            <button class="btn-edit-user" data-id="${u.id}" style="background:var(--bg-input); color:var(--text-main); border:1px solid var(--border); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px;">Editar</button>
-            <button class="btn-del-user" data-id="${u.id}" style="background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px;">Eliminar</button>
+          <div style=\"display:flex; gap:6px;\">
+            <button class=\"btn-edit-user\" data-id=\"${u.id}\" style=\"background:var(--bg-input); color:var(--text-main); border:1px solid var(--border); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px;\">Editar</button>
+            <button class=\"btn-del-user\" data-id=\"${u.id}\" style=\"background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.2); padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px;\">Eliminar</button>
           </div>
         </td>
       </tr>
@@ -719,7 +700,7 @@
 
   const resetearFormularioUsuario = () => {
     state.editingUserId = null;
-    const form = document.getElementById('form-usuario-git');
+    const form = document.getElementById('form-usuario') || document.getElementById('form-usuario-git');
     if (form) form.reset();
     const formTitle = document.getElementById('formUsuarioTitulo');
     if (formTitle) formTitle.textContent = 'Crear Nuevo Usuario';
@@ -729,7 +710,6 @@
   // ⚙️ INICIALIZACIÓN GLOBAL
   // ==========================================
   const inicializarEventosGlobales = () => {
-    // Autenticación
     if (els.btnLogin) els.btnLogin.addEventListener('click', ejecutarLogin);
     if (els.loginPassword) {
       els.loginPassword.addEventListener('keydown', (e) => {
@@ -738,7 +718,6 @@
     }
     if (els.btnLogout) els.btnLogout.addEventListener('click', ejecutarLogout);
 
-    // 🌟 BOTONES DE CONTROL DE FILTROS MÁS GRÁFICAS
     if (els.btnAplicarFiltros) {
       els.btnAplicarFiltros.addEventListener('click', ejecutarFiltradoYRenderizado);
     }
@@ -746,18 +725,18 @@
       els.btnBorrarFiltros.addEventListener('click', limpiarTodosLosFiltros);
     }
 
-    // Filtros en Tiempo Real (Usuarios)
     if (els.userSearch) els.userSearch.addEventListener('input', renderUsuarios);
     if (els.userRoleFilter) els.userRoleFilter.addEventListener('change', renderUsuarios);
 
-    // Formulario de altas/cambios de usuarios
-    const userForm = document.getElementById('form-usuario-git');
-    if (userForm) userForm.addEventListener('submit', guardarUsuarioBBDD);
+    // 🌟 CORREGIDO: Buscamos ambos IDs posibles para evitar errores de tipo 'null'
+    const userForm = document.getElementById('form-usuario') || document.getElementById('form-usuario-git');
+    if (userForm) {
+      userForm.addEventListener('submit', guardarUsuarioBBDD);
+    }
 
     const btnCancelarUser = document.getElementById('btnCancelarUser');
     if (btnCancelarUser) btnCancelarUser.addEventListener('click', resetearFormularioUsuario);
 
-    // Control de modales
     if (els.btnCerrarModal) {
       els.btnCerrarModal.addEventListener('click', () => {
         if (els.modalFicha) els.modalFicha.classList.remove('open');
@@ -769,7 +748,6 @@
       });
     }
 
-    // Drag & Drop / Selección manual de JSON
     if (els.dropZone && els.jsonFileInput) {
       els.dropZone.addEventListener('click', () => els.jsonFileInput.click());
       els.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropZone.classList.add('drag-over'); });
@@ -786,7 +764,6 @@
     }
   };
 
-  // Disparador principal de arranque
   document.addEventListener('DOMContentLoaded', () => {
     inicializarNavegacion();
     inicializarEventosGlobales();
