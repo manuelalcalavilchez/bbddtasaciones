@@ -380,7 +380,7 @@
       const coincideSuperficie = inRange(r.superficie, surfaceRange);
       const coincideFecha = inDateRange(r.fecha, dateFrom, dateTo);
       return coincideTexto && coincideTipo && coincideMunicipio && coincideEstado && 
-             coindexValor && coincideSuperficie && coincideFecha;
+             coincideValor && coincideSuperficie && coincideFecha;
     });
 
     if (coordenadasCentro) {
