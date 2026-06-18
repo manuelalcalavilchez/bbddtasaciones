@@ -54,7 +54,7 @@
     // Gestión de Usuarios
     userSearch: document.getElementById('userSearch'),
     userRoleFilter: document.getElementById('userRoleFilter'),
-    usersBody: document.getElementById('usuariosBody'),          // CORREGIDO: Enlazado con id="usuariosBody" del HTML
+    usersBody: document.getElementById('usuariosBody'),          // Sincronizado con id="usuariosBody" del HTML
     usuariosMsg: document.getElementById('usuariosMsg'),
     
     // Modales (Ficha detalle e Info de usuario)
@@ -93,7 +93,7 @@
   };
 
   // ==========================================
-  // 🔐 AUTENTICACIÓN Y NAVEGACIÓN (CORREGIDO)
+  // 🔐 AUTENTICACIÓN Y NAVEGACIÓN
   // ==========================================
   const ejecutarLogin = async () => {
     if (!els.loginEmail || !els.loginPassword) return;
@@ -111,7 +111,7 @@
       const userArray = await res.json();
       if (Array.isArray(userArray) && userArray.length > 0) {
         localStorage.setItem('session_user', JSON.stringify(userArray[0]));
-        inicializarSesionDeUsuario(userArray[0]); // Activa las vistas directamente sin hacer redirecciones de ruta absoutas
+        inicializarSesionDeUsuario(userArray[0]);
       } else {
         if (els.loginError) els.loginError.textContent = 'Credenciales no válidas en PostgreSQL.';
       }
@@ -123,7 +123,7 @@
   const inicializarSesionDeUsuario = (user) => {
     if (els.userBadge) els.userBadge.textContent = `${user.email} (${user.rol || 'tasador'})`;
     
-    // Cambios dinámicos de estilos para SPA (Single Page Application)
+    // Cambios de vista SPA nativos sin alterar rutas absolutas
     if (els.authView) els.authView.style.display = 'none';
     if (els.appView) els.appView.style.display = 'flex';
     
@@ -220,7 +220,7 @@
   };
 
   // ==========================================
-  // 📊 GRÁFICAS (Chart.js v4)
+  // 📊 GRÁFICAS (Chart.js v4) - EVITA ESTIRAMIENTO INFINITO
   // ==========================================
   const destroyCharts = () => {
     Object.values(state.charts).forEach(chart => chart.destroy());
@@ -246,7 +246,12 @@
           labels: Object.keys(typeCounts),
           datasets: [{ data: Object.values(typeCounts), backgroundColor: colors, borderWidth: 0 }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc', font: { family: 'Inter', size: 11 } } } } }
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: true, 
+          aspectRatio: 1.5,
+          plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc', font: { family: 'Inter', size: 11 } } } } 
+        }
       });
     }
 
@@ -260,7 +265,12 @@
           labels: Object.keys(statusCounts),
           datasets: [{ data: Object.values(statusCounts), backgroundColor: Object.keys(statusCounts).map(k => statusColors[k] || '#64748b'), borderWidth: 0 }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc', font: { family: 'Inter', size: 11 } } } } }
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: true, 
+          aspectRatio: 1.5,
+          plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc', font: { family: 'Inter', size: 11 } } } } 
+        }
       });
     }
 
@@ -277,7 +287,8 @@
         options: {
           indexAxis: 'y',
           responsive: true,
-          maintainAspectRatio: false,
+          maintainAspectRatio: true, 
+          aspectRatio: 2,
           plugins: { legend: { display: false } },
           scales: {
             x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
@@ -304,7 +315,8 @@
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false,
+          maintainAspectRatio: true, 
+          aspectRatio: 2,
           plugins: { legend: { labels: { color: '#f8fafc' } } },
           scales: {
             x: { title: { display: true, text: 'Superficie (m²)', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
@@ -379,6 +391,8 @@
       const coincideValor = inRange(r.valor, valueRange);
       const coincideSuperficie = inRange(r.superficie, surfaceRange);
       const coincideFecha = inDateRange(r.fecha, dateFrom, dateTo);
+      
+      // CORREGIDO: "coincideValor" (sin erratas de ejecución)
       return coincideTexto && coincideTipo && coincideMunicipio && coincideEstado && 
              coincideValor && coincideSuperficie && coincideFecha;
     });
@@ -536,10 +550,10 @@
   };
 
   // ==========================================
-  // 👥 GESTIÓN DE USUARIOS (CORREGIDO)
+  // 👥 GESTIÓN DE USUARIOS
   // ==========================================
   const cargarUsuarios = async () => {
-    if (!els.usersBody) return; // Validación segura del DOM
+    if (!els.usersBody) return;
     try {
       const response = await fetch(`${state.apiBase}/usuarios?order=email.asc`);
       if (response.ok) {
@@ -568,7 +582,6 @@
       return;
     }
 
-    // Inyección limpia y sincronizada usando id="usuariosBody"
     els.usersBody.innerHTML = filtrados.map(u => `
       <tr>
         <td>
@@ -584,7 +597,6 @@
       </tr>
     `).join('');
 
-    // Listeners para acciones de usuario
     els.usersBody.querySelectorAll('.btn-edit-user').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -736,7 +748,7 @@
       });
       els.jsonFileInput.addEventListener('change', (e) => {
         if (e.target.files.length) handleFiles(e.target.files);
-        e.target.value = ''; // Reset input
+        e.target.value = '';
       });
     }
   };
