@@ -3,6 +3,7 @@
     apiBase: 'https://n8n-postgrest-api.n9xpuu.easypanel.host',
     frontendBase: location.href,
     records: [],
+    filteredRecords: [], // Almacén dinámico para las gráficas y mapas
     map: null,
     markers: [],
     poblacionesGps: {},
@@ -11,7 +12,7 @@
     editingUserId: null
   };
 
-  // Mapeo unificado sincronizado al 100% con los IDs reales de index.html
+  // Mapeo unificado sincronizado al 100% con los IDs de tu index.html
   const els = {
     // Vistas principales
     authView: document.getElementById('auth-view'),
@@ -29,6 +30,10 @@
     kpiTotal: document.getElementById('kpiTotal'),
     kpiPending: document.getElementById('kpiPending'),
     kpiDone: document.getElementById('kpiDone'),
+
+    // Botones de control de Filtros (Asegúrate de que existan en el HTML estos IDs)
+    btnAplicarFiltros: document.getElementById('btnAplicarFiltros'), 
+    btnBorrarFiltros: document.getElementById('btnBorrarFiltros'),
 
     // Filtros Avanzados (Sección Dashboard)
     advSearch: document.getElementById('advSearch'),
@@ -54,7 +59,7 @@
     // Gestión de Usuarios
     userSearch: document.getElementById('userSearch'),
     userRoleFilter: document.getElementById('userRoleFilter'),
-    usersBody: document.getElementById('usuariosBody'),          // Sincronizado con id="usuariosBody" del HTML
+    usersBody: document.getElementById('usuariosBody'),          
     usuariosMsg: document.getElementById('usuariosMsg'),
     
     // Modales (Ficha detalle e Info de usuario)
@@ -123,7 +128,6 @@
   const inicializarSesionDeUsuario = (user) => {
     if (els.userBadge) els.userBadge.textContent = `${user.email} (${user.rol || 'tasador'})`;
     
-    // Cambios de vista SPA nativos sin alterar rutas absolutas
     if (els.authView) els.authView.style.display = 'none';
     if (els.appView) els.appView.style.display = 'flex';
     
@@ -220,7 +224,7 @@
   };
 
   // ==========================================
-  // 📊 GRÁFICAS (Chart.js v4) - EVITA ESTIRAMIENTO INFINITO
+  // 📊 GRÁFICAS ADAPTATIVAS A LOS FILTROS
   // ==========================================
   const destroyCharts = () => {
     Object.values(state.charts).forEach(chart => chart.destroy());
@@ -237,9 +241,12 @@
     };
     const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16'];
 
+    // 🌟 AHORA USA UNICAMENTE STATE.FILTEREDRECORDS
+    const dataSrc = state.filteredRecords;
+
     if (ctx.type) {
       const typeCounts = {};
-      state.records.forEach(r => { if(r.tipo) typeCounts[r.tipo] = (typeCounts[r.tipo] || 0) + 1; });
+      dataSrc.forEach(r => { if(r.tipo) typeCounts[r.tipo] = (typeCounts[r.tipo] || 0) + 1; });
       state.charts.type = new Chart(ctx.type, {
         type: 'doughnut',
         data: {
@@ -257,7 +264,7 @@
 
     if (ctx.status) {
       const statusCounts = {};
-      state.records.forEach(r => { if(r.estado) statusCounts[r.estado] = (statusCounts[r.estado] || 0) + 1; });
+      dataSrc.forEach(r => { if(r.estado) statusCounts[r.estado] = (statusCounts[r.estado] || 0) + 1; });
       const statusColors = { 'Finalizado': '#22c55e', 'En proceso': '#3b82f6', 'Pendiente': '#f59e0b' };
       state.charts.status = new Chart(ctx.status, {
         type: 'pie',
@@ -276,7 +283,7 @@
 
     if (ctx.municipios) {
       const muniCounts = {};
-      state.records.forEach(r => { if (r.localidad) muniCounts[r.localidad] = (muniCounts[r.localidad] || 0) + 1; });
+      dataSrc.forEach(r => { if (r.localidad) muniCounts[r.localidad] = (muniCounts[r.localidad] || 0) + 1; });
       const sorted = Object.entries(muniCounts).sort((a,b) => b[1] - a[1]).slice(0, 10);
       state.charts.municipios = new Chart(ctx.municipios, {
         type: 'bar',
@@ -299,7 +306,7 @@
     }
 
     if (ctx.valorSuperficie) {
-      const scatterData = state.records
+      const scatterData = dataSrc
         .filter(r => r.valor && r.superficie)
         .map(r => ({ x: Number(r.superficie), y: Number(r.valor) }))
         .slice(0, 200);
@@ -328,7 +335,7 @@
   };
 
   // ==========================================
-  // 📑 DATOS Y RENDERS DE TABLAS
+  // 📑 DATOS Y PROCESAMIENTO
   // ==========================================
   const cargarTasacionesDesdeBBDD = async () => {
     try {
@@ -345,16 +352,18 @@
         });
         actualizarSelectorPoblaciones();
         actualizarSelectorMunicipios();
-        renderSistemaCompleto();
+        
+        // Carga inicial: datos filtrados = datos totales
+        state.filteredRecords = [...state.records];
+        ejecutarFiltradoYRenderizado();
         renderRecordsFull();
-        renderCharts();
       }
     } catch (error) {
       console.error("Error cargando BBDD:", error);
     }
   };
 
-  const renderSistemaCompleto = () => {
+  const ejecutarFiltradoYRenderizado = () => {
     if (!els.recordsBody) return;
     state.markers.forEach(m => state.map?.removeLayer(m));
     state.markers = [];
@@ -374,7 +383,8 @@
       coordenadasCentro = state.poblacionesGps[centroReferencia];
     }
 
-    let filtrados = state.records.map(r => {
+    // Guardamos los resultados del filtro en state.filteredRecords
+    state.filteredRecords = state.records.map(r => {
       let distancia = null;
       if (r.lote && coordenadasCentro) {
         const c = r.lote.split(',');
@@ -392,30 +402,32 @@
       const coincideSuperficie = inRange(r.superficie, surfaceRange);
       const coincideFecha = inDateRange(r.fecha, dateFrom, dateTo);
       
-      // CORREGIDO: "coincideValor" (sin erratas de ejecución)
       return coincideTexto && coincideTipo && coincideMunicipio && coincideEstado && 
              coincideValor && coincideSuperficie && coincideFecha;
     });
 
     if (coordenadasCentro) {
-      filtrados.sort((a, b) => {
+      state.filteredRecords.sort((a, b) => {
         if (a._distancia === null) return 1;
         if (b._distancia === null) return -1;
         return a._distancia - b._distancia;
       });
     }
 
+    // Actualización de KPIs en base al set total estático
     if (els.kpiTotal) els.kpiTotal.textContent = state.records.length;
     if (els.kpiPending) els.kpiPending.textContent = state.records.filter(r => r.estado !== 'Finalizado').length;
     if (els.kpiDone) els.kpiDone.textContent = state.records.filter(r => r.estado === 'Finalizado').length;
-    if (els.mapCounter) els.mapCounter.textContent = `${filtrados.length} marcadores activos`;
+    if (els.mapCounter) els.mapCounter.textContent = `${state.filteredRecords.length} marcadores activos`;
 
-    if (filtrados.length === 0) {
+    if (state.filteredRecords.length === 0) {
       els.recordsBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Ningún expediente coincide con los criterios seleccionados.</td></tr>`;
+      destroyCharts(); // Destruye para no mostrar información desactualizada
       return;
     }
 
-    els.recordsBody.innerHTML = filtrados.map(r => {
+    // Renderizado de tabla y mapa con state.filteredRecords
+    els.recordsBody.innerHTML = state.filteredRecords.map(r => {
       const badgeClass = r.estado === 'Finalizado' ? 'finalizado' : (r.estado === 'En proceso' ? 'proceso' : 'pendiente');
       const distTexto = r._distancia !== null ? `${r._distancia.toFixed(2)} Km` : '—';
       const valorEuro = formatEuro(r.valor);
@@ -445,6 +457,26 @@
     els.recordsBody.querySelectorAll('tr[data-id]').forEach(tr => {
       tr.addEventListener('click', () => mostrarDetalleTasacion(tr.dataset.id));
     });
+
+    // 🌟 RE-RENDERIZAR GRÁFICAS CON LOS NUEVOS DATOS FILTRADOS
+    renderCharts();
+  };
+
+  const limpiarTodosLosFiltros = () => {
+    // Restablecer los valores de los inputs de filtrado avanzados
+    if (els.advSearch) els.advSearch.value = '';
+    if (els.advType) els.advType.value = '';
+    if (els.advMunicipio) els.advMunicipio.value = '';
+    if (els.advStatus) els.advStatus.value = '';
+    if (els.advValueRange) els.advValueRange.value = '';
+    if (els.advSurfaceRange) els.advSurfaceRange.value = '';
+    if (els.advDateFrom) els.advDateFrom.value = '';
+    if (els.advDateTo) els.advDateTo.value = '';
+    if (els.advDistanceTown) els.advDistanceTown.value = '';
+
+    // Devolver el estado filtrado al estado inicial completo y pintar
+    state.filteredRecords = [...state.records];
+    ejecutarFiltradoYRenderizado();
   };
 
   const renderRecordsFull = () => {
@@ -706,12 +738,13 @@
     }
     if (els.btnLogout) els.btnLogout.addEventListener('click', ejecutarLogout);
 
-    // Filtros en Tiempo Real (Dashboard)
-    const inputsFiltro = [els.advSearch, els.advType, els.advMunicipio, els.advStatus, els.advValueRange, els.advSurfaceRange, els.advDateFrom, els.advDateTo, els.advDistanceTown];
-    inputsFiltro.forEach(input => {
-      if (input) input.addEventListener('change', renderSistemaCompleto);
-    });
-    if (els.advSearch) els.advSearch.addEventListener('input', renderSistemaCompleto);
+    // 🌟 BOTONES DE CONTROL DE FILTROS MÁS GRÁFICAS
+    if (els.btnAplicarFiltros) {
+      els.btnAplicarFiltros.addEventListener('click', ejecutarFiltradoYRenderizado);
+    }
+    if (els.btnBorrarFiltros) {
+      els.btnBorrarFiltros.addEventListener('click', limpiarTodosLosFiltros);
+    }
 
     // Filtros en Tiempo Real (Usuarios)
     if (els.userSearch) els.userSearch.addEventListener('input', renderUsuarios);
