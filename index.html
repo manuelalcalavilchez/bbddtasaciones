@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Valoraciones | Tecnología Alcalá</title>
+    <title>Panel de Valoraciones | Gestión Técnica</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
     <style>
+        /* ===== VARIABLES DE DISEÑO (SISTEMA DE DISEÑO OSCURO DE ALTO CONTRASTE) ===== */
         :root {
             --bg-main: #0f172a;
             --bg-card: #1e293b;
@@ -22,8 +23,10 @@
             --success: #22c55e;
             --warning: #f59e0b;
             --danger: #ef4444;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        /* ===== RESETEO GLOBAL DE ESTILOS ===== */
         * { 
             box-sizing: border-box; 
             margin: 0; 
@@ -38,109 +41,127 @@
             display: flex;
             flex-direction: column;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* ===== VISTA DE AUTENTICACIÓN (LOGIN) ===== */
+        /* ===== VISTA 1: CAPA DE AUTENTICACIÓN (LOGIN DE ENTRADA) ===== */
         #auth-view {
             display: grid;
             place-items: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: 24px;
+            background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 40%);
         }
 
         .login-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             padding: 40px;
-            border-radius: 12px;
+            border-radius: 16px;
             width: 100%;
-            max-width: 420px;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+            max-width: 440px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.4), 0 10px 10px -5px rgba(0,0,0,0.2);
         }
 
         .login-card h2 {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 700;
             margin-bottom: 8px;
             text-align: center;
+            letter-spacing: -0.5px;
         }
 
         .login-card p {
             color: var(--text-muted);
             font-size: 14px;
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 32px;
         }
 
-        /* ===== INTERFAZ GENERAL SPA ===== */
+        /* ===== VISTA 2: NÚCLEO INTERFAZ PRINCIPAL SPA ===== */
         #app-view {
-            display: none; /* Se controla dinámicamente mediante app.js */
+            display: none; /* Se activa por app.js al autenticar con éxito */
             flex: 1;
             height: 100vh;
             overflow: hidden;
         }
 
-        /* Barra Lateral de Navegación */
+        /* Barra Lateral Izquierda (Menú del Sistema) */
         .sidebar {
-            width: 260px;
+            width: 280px;
             background: var(--bg-card);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 24px 16px;
+            padding: 32px 20px;
+            flex-shrink: 0;
         }
 
         .brand h1 {
-            font-size: 18px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            margin-bottom: 32px;
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            margin-bottom: 40px;
             color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .nav {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
             flex: 1;
         }
 
         .nav a {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             color: var(--text-muted);
             text-decoration: none;
-            padding: 12px;
-            border-radius: 8px;
+            padding: 14px 16px;
+            border-radius: 10px;
             font-size: 14px;
             font-weight: 500;
-            transition: all 0.2s;
+            transition: var(--transition);
         }
 
-        .nav a:hover, .nav a.active {
-            background: var(--bg-input);
+        .nav a:hover {
+            background: rgba(255, 255, 255, 0.03);
             color: var(--text-main);
         }
 
         .nav a.active {
+            background: var(--bg-input);
+            color: var(--text-main);
+            font-weight: 600;
             border-left: 4px solid var(--primary);
+            border-top-left-radius: 2px;
+            border-bottom-left-radius: 2px;
         }
 
         .sidebar-footer {
             border-top: 1px solid var(--border);
-            padding-top: 16px;
+            padding-top: 24px;
         }
 
         #userBadge {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--text-muted);
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             word-break: break-all;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.15);
+            padding: 10px;
+            border-radius: 8px;
         }
 
-        /* Contenedor Principal de Vistas */
+        /* Bloque Derecho de Visualización de Contenidos */
         .main-content {
             flex: 1;
             display: flex;
@@ -151,218 +172,373 @@
 
         .view-section {
             display: none;
-            padding: 32px;
+            padding: 40px;
             flex-direction: column;
-            gap: 24px;
+            gap: 32px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
         }
 
         .view-section.active {
             display: flex;
         }
 
+        .section-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 20px;
+        }
+
         .section-header h2 {
-            font-size: 26px;
+            font-size: 28px;
             font-weight: 700;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
         }
 
         .section-header p {
             color: var(--text-muted);
-            font-size: 14px;
+            font-size: 15px;
         }
 
-        /* Componentes Comunes de Formulario */
+        /* ===== ELEMENTOS DE FORMULARIO COMUNES Y CONTROLES TELESCOPICOS ===== */
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
         }
 
         .form-group label {
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
             color: var(--text-muted);
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .form-control {
             background: var(--bg-input);
             border: 1px solid var(--border);
             color: var(--text-main);
-            padding: 10px 14px;
+            padding: 12px 16px;
             border-radius: 8px;
             font-size: 14px;
             outline: none;
             width: 100%;
+            transition: var(--transition);
         }
 
         .form-control:focus {
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
         }
 
         .btn {
             background: var(--primary);
             color: white;
             border: none;
-            padding: 12px;
+            padding: 14px;
             border-radius: 8px;
             font-weight: 600;
+            font-size: 14px;
             cursor: pointer;
             width: 100%;
-            transition: background 0.2s;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        .btn:hover { background: var(--primary-hover); }
+        .btn:hover { 
+            background: var(--primary-hover); 
+        }
 
-        /* Cuadrícula de KPIs */
+        /* ===== BLOQUE DE KPIs SUPERIORES ===== */
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
         }
 
         .kpi-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            padding: 20px;
-            border-radius: 10px;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
         }
 
-        .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
-        .kpi-card .kpi-val { font-size: 28px; font-weight: 700; margin-top: 6px; }
+        .kpi-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--primary);
+        }
 
-        /* Layout del Dashboard */
+        .kpi-card:nth-child(2)::after { background: var(--warning); }
+        .kpi-card:nth-child(3)::after { background: var(--success); }
+
+        .kpi-card .kpi-label { 
+            font-size: 12px; 
+            color: var(--text-muted); 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px;
+        }
+        
+        .kpi-card .kpi-val { 
+            font-size: 32px; 
+            font-weight: 700; 
+            margin-top: 8px; 
+            letter-spacing: -0.5px;
+        }
+
+        /* ===== ENTORNO MAQUETACIÓN DASHBOARD GEOGRÁFICO ===== */
         .dashboard-layout {
             display: grid;
-            grid-template-columns: 320px 1fr;
-            gap: 24px;
+            grid-template-columns: 340px 1fr;
+            gap: 32px;
             align-items: start;
         }
 
         .panel-filtros {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: 16px;
+            padding: 24px;
+            position: sticky;
+            top: 40px;
         }
 
         .dashboard-main {
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 32px;
         }
 
-        /* Entorno de Mapa */
+        /* Contenedor del Mapa Mapbox / Leaflet GIS */
         #map {
-            height: 400px;
+            height: 440px;
             width: 100%;
-            border-radius: 12px;
+            border-radius: 16px;
             border: 1px solid var(--border);
             z-index: 1;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
         }
 
-        /* Tablas de Datos */
+        /* ===== DISEÑO AVANZADO DE TABLAS COMPONENTES ===== */
         .table-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 16px;
             overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
 
         .card-header {
-            padding: 16px 20px;
+            padding: 20px 24px;
             border-bottom: 1px solid var(--border);
-            font-weight: 600;
-            font-size: 15px;
+            font-weight: 700;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.01);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .table-wrap { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left; }
-        th { background: rgba(255,255,255,0.02); padding: 12px 20px; color: var(--text-muted); font-weight: 500; border-bottom: 1px solid var(--border); }
-        td { padding: 14px 20px; border-bottom: 1px solid var(--border); color: #e2e8f0; }
-        tbody tr { cursor: pointer; transition: background 0.15s; }
-        tbody tr:hover { background: rgba(255,255,255,0.03); }
+        .table-wrap { 
+            overflow-x: auto; 
+        }
 
-        /* Badges de Estado */
-        .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-        .badge.finalizado { background: rgba(34,197,94,0.1); color: var(--success); }
-        .badge.proceso { background: rgba(59,130,246,0.1); color: var(--primary); }
-        .badge.pendiente { background: rgba(245,158,11,0.1); color: var(--warning); }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 14px; 
+            text-align: left; 
+        }
 
-        /* Cuadrícula de Gráficas */
+        th { 
+            background: rgba(255,255,255,0.02); 
+            padding: 16px 24px; 
+            color: var(--text-muted); 
+            font-weight: 600; 
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td { 
+            padding: 16px 24px; 
+            border-bottom: 1px solid rgba(71, 85, 105, 0.5); 
+            color: #e2e8f0; 
+        }
+
+        tbody tr { 
+            cursor: pointer; 
+            transition: var(--transition); 
+        }
+
+        tbody tr:hover { 
+            background: rgba(59, 130, 246, 0.04); 
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* ETIQUETAS BADGES DE ESTADO OPERACIONAL */
+        .badge { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px; 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: 600; 
+        }
+        .badge.finalizado { background: rgba(34,197,94,0.12); color: var(--success); }
+        .badge.proceso { background: rgba(59,130,246,0.12); color: var(--primary); }
+        .badge.pendiente { background: rgba(245,158,11,0.12); color: var(--warning); }
+
+        /* ===== CUADRÍCULA DE CUADROS ESTADÍSTICOS (CHARTS) ===== */
         .charts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
             gap: 24px;
         }
 
         .chart-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
-        .chart-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text-muted); }
+        
+        .chart-card h3 { 
+            font-size: 14px; 
+            font-weight: 700; 
+            margin-bottom: 20px; 
+            color: var(--text-muted); 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
-        /* Zona Dropzone / Importación */
+        /* ===== ZONA COOPERATIVA RECEPTORA DE JSON (DROPZONE) ===== */
         .dropzone {
             border: 2px dashed var(--border);
             background: var(--bg-card);
-            border-radius: 12px;
-            padding: 40px 20px;
+            border-radius: 16px;
+            padding: 60px 24px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: var(--transition);
         }
-        .dropzone:hover, .dropzone.drag-over { border-color: var(--primary); background: rgba(59,130,246,0.02); }
-        .dropzone .icon { font-size: 48px; color: var(--text-muted); margin-bottom: 12px; }
+        .dropzone:hover, .dropzone.drag-over { 
+            border-color: var(--primary); 
+            background: rgba(59, 130, 246, 0.02); 
+        }
+        .dropzone .icon { 
+            font-size: 56px; 
+            color: var(--text-muted); 
+            margin-bottom: 16px; 
+        }
 
-        /* Estructura sección de usuarios */
+        /* ===== ARQUITECTURA SECCIÓN CONFIGURACIÓN CUENTAS ===== */
         .usuarios-layout {
             display: grid;
-            grid-template-columns: 1fr 1.5fr;
-            gap: 24px;
+            grid-template-columns: 360px 1fr;
+            gap: 32px;
             align-items: start;
         }
 
-        /* Modales */
+        /* ===== MODALES GLOBALES DETALLE FICHA ===== */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15,23,42,0.8); backdrop-filter: blur(4px);
-            display: none; place-items: center; z-index: 9999; padding: 20px;
+            background: rgba(15, 23, 42, 0.85); 
+            backdrop-filter: blur(5px);
+            display: none; 
+            place-items: center; 
+            z-index: 99999; 
+            padding: 24px;
+            transition: var(--transition);
         }
-        .modal-overlay.open { display: grid; }
+        .modal-overlay.open { 
+            display: grid; 
+        }
         .modal-box {
-            background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: 16px; width: 100%; max-width: 700px;
-            padding: 32px; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            background: var(--bg-card); 
+            border: 1px solid var(--border);
+            border-radius: 20px; 
+            width: 100%; 
+            max-width: 760px;
+            padding: 36px; 
+            position: relative; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6);
+            animation: modalAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modalAppear {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
         .modal-close {
-            position: absolute; top: 20px; right: 20px; background: none; border: none;
-            color: var(--text-muted); font-size: 20px; cursor: pointer;
+            position: absolute; top: 24px; right: 24px; 
+            background: rgba(255,255,255,0.05); border: none;
+            color: var(--text-muted); font-size: 16px; 
+            cursor: pointer; width: 32px; height: 32px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            transition: var(--transition);
         }
-        .modal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-        .modal-field { background: var(--bg-main); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; }
-        .modal-field label { font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 2px; }
+        .modal-close:hover {
+            background: rgba(239, 64, 64, 0.2);
+            color: var(--danger);
+        }
+        .modal-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 16px; 
+            margin-top: 20px;
+        }
+        .modal-field { 
+            background: var(--bg-main); 
+            padding: 14px 18px; 
+            border-radius: 10px; 
+            border: 1px solid var(--border); 
+            font-size: 14px; 
+        }
+        .modal-field label { 
+            font-size: 11px; 
+            color: var(--text-muted); 
+            font-weight: 700; 
+            display: block; 
+            margin-bottom: 4px; 
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
 
     <div id="auth-view">
         <div class="login-card">
-            <h2>Panel Técnico</h2>
-            <p>Introduce tus credenciales para acceder</p>
+            <h2>Panel de Tasación</h2>
+            <p>Introduce tus credenciales autorizadas</p>
             <div class="form-group">
-                <label>Email Corporativo</label>
-                <input type="email" id="loginEmail" class="form-control" placeholder="ejemplo@empresa.com">
+                <label>Email Técnico</label>
+                <input type="email" id="loginEmail" class="form-control" placeholder="usuario@empresa.com" required>
             </div>
             <div class="form-group">
                 <label>Contraseña</label>
-                <input type="password" id="loginPassword" class="form-control" placeholder="••••••••">
+                <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
             </div>
-            <div id="loginError" style="color:var(--danger); font-size:13px; margin-bottom:16px; min-height:18px; text-align:center;"></div>
-            <button id="btnLogin" class="btn">Iniciar Sesión</button>
+            <div id="loginError" style="color:var(--danger); font-size:13px; margin-bottom:20px; min-height:20px; text-align:center; font-weight:500;"></div>
+            <button id="btnLogin" class="btn">
+                <span class="material-symbols-outlined" style="font-size:18px;">login</span> Iniciar Sesión Electronica
+            </button>
         </div>
     </div>
 
@@ -372,6 +548,7 @@
         <div class="sidebar">
             <div class="sidebar-top">
                 <div class="brand">
+                    <span class="material-symbols-outlined" style="font-size: 26px;">layers</span>
                     <h1>VALORACIONES</h1>
                 </div>
                 <div class="nav">
@@ -385,13 +562,17 @@
                         <span class="material-symbols-outlined">upload_file</span> Importar Lotes
                     </a>
                     <a href="#" data-target="sec-users">
-                        <span class="material-symbols-outlined">group</span> Configuración Usuarios
+                        <span class="material-symbols-outlined">group</span> Cuentas y Accesos
                     </a>
                 </div>
             </div>
             <div class="sidebar-footer">
-                <div id="userBadge">Cargando perfil…</div>
-                <button id="btnLogout" class="btn" style="background:var(--bg-input); border:1px solid var(--border); color:var(--text-main); padding:8px;">Cerrar Sesión</button>
+                <div id="userBadge">
+                    <span class="material-symbols-outlined" style="font-size:16px;">account_circle</span> Cargando cuenta...
+                </div>
+                <button id="btnLogout" class="btn" style="background:var(--bg-input); border:1px solid var(--border); color:var(--text-main); padding:10px; font-size:13px;">
+                    <span class="material-symbols-outlined" style="font-size:16px;">logout</span> Cerrar Sesión
+                </button>
             </div>
         </div>
 
@@ -399,39 +580,50 @@
 
             <div id="sec-dashboard" class="view-section active">
                 <div class="section-header">
-                    <h2>Panel Principal</h2>
-                    <p>Análisis territorial de expedientes, gráficas dinámicas y entorno GIS.</p>
+                    <h2>Panel Principal Analítico</h2>
+                    <p>Filtros avanzados geoposicionados, correlación de valores y visualización territorial.</p>
                 </div>
 
                 <div class="kpi-grid">
-                    <div class="kpi-card"><div class="kpi-label">Total Registros</div><div class="kpi-val" id="kpiTotal">0</div></div>
-                    <div class="kpi-card"><div class="kpi-label">En Proceso / Pendientes</div><div class="kpi-val" id="kpiPending">0</div></div>
-                    <div class="kpi-card"><div class="kpi-label">Finalizados</div><div class="kpi-val" id="kpiDone">0</div></div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Registros en Sistema</div>
+                        <div class="kpi-val" id="kpiTotal">0</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Expedientes Abiertos</div>
+                        <div class="kpi-val" id="kpiPending">0</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Tasaciones Visadas</div>
+                        <div class="kpi-val" id="kpiDone">0</div>
+                    </div>
                 </div>
 
                 <div class="dashboard-layout">
                     <div class="panel-filtros">
-                        <h3 style="font-size:14px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px;">Filtros Avanzados</h3>
+                        <h3 style="font-size:13px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:20px; letter-spacing:0.5px;">Filtros de Búsqueda</h3>
                         
                         <div class="form-group">
-                            <label>Búsqueda General</label>
-                            <input type="text" id="advSearch" class="form-control" placeholder="Ref, solicitante...">
+                            <label>Texto Libre</label>
+                            <input type="text" id="advSearch" class="form-control" placeholder="Buscar por ref, propietario...">
                         </div>
                         <div class="form-group">
-                            <label>Tipo de Inmueble</label>
+                            <label>Tipología Constructiva</label>
                             <select id="advType" class="form-control">
-                                <option value="">Todos los tipos</option>
+                                <option value="">Cualquier tipo</option>
                                 <option value="Rústico">Rústico</option>
                                 <option value="Urbano">Urbano</option>
                                 <option value="Industrial">Industrial</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Municipio</label>
-                            <select id="advMunicipio" class="form-control"><option value="">Todos los municipios</option></select>
+                            <label>Término Municipal</label>
+                            <select id="advMunicipio" class="form-control">
+                                <option value="">Todos los municipios</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label>Estado de la Tasación</label>
+                            <label>Estado Expediente</label>
                             <select id="advStatus" class="form-control">
                                 <option value="">Todos los estados</option>
                                 <option value="Finalizado">Finalizado</option>
@@ -440,56 +632,61 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Rango de Valor (€)</label>
-                            <input type="text" id="advValueRange" class="form-control" placeholder="Ej: 50000-150000">
+                            <label>Intervalo de Valor (€)</label>
+                            <input type="text" id="advValueRange" class="form-control" placeholder="Ej: 60000-200000">
                         </div>
                         <div class="form-group">
-                            <label>Rango Superficie (m²)</label>
-                            <input type="text" id="advSurfaceRange" class="form-control" placeholder="Ej: 100-5000">
+                            <label>Intervalo Superficie (m²)</label>
+                            <input type="text" id="advSurfaceRange" class="form-control" placeholder="Ej: 90-1200">
                         </div>
                         <div class="form-group">
-                            <label>Desde Fecha</label>
+                            <label>Fecha Inicial</label>
                             <input type="date" id="advDateFrom" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label>Hasta Fecha</label>
+                            <label>Fecha Final</label>
                             <input type="date" id="advDateTo" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label>Ordenar por Cercanía a:</label>
-                            <select id="advDistanceTown" class="form-control"><option value="">— Sin ordenar —</option></select>
+                            <label>Calcular Cercanía a:</label>
+                            <select id="advDistanceTown" class="form-control">
+                                <option value="">— No ordenar —</option>
+                            </select>
                         </div>
 
-                        <div class="filters-actions" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
-                            <button id="btnAplicarFiltros" class="btn" style="padding: 10px;">Aplicar Filtros</button>
-                            <button id="btnBorrarFiltros" class="btn" style="background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 10px;">Borrar Filtros</button>
+                        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
+                            <button id="btnAplicarFiltros" class="btn">
+                                <span class="material-symbols-outlined" style="font-size:18px;">filter_alt</span> Filtrar Datos
+                            </button>
+                            <button id="btnBorrarFiltros" class="btn" style="background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main);">
+                                <span class="material-symbols-outlined" style="font-size:18px;">layers_clear</span> Limpiar Limites
+                            </button>
                         </div>
                     </div>
 
                     <div class="dashboard-main">
                         <div style="position:relative;">
                             <div id="map"></div>
-                            <div id="mapCounter" style="position:absolute; bottom:10px; right:10px; background:rgba(30,41,59,0.9); padding:4px 10px; font-size:11px; font-weight:600; border-radius:4px; border:1px solid var(--border); z-index:999;">0 marcadores activos</div>
+                            <div id="mapCounter" style="position:absolute; bottom:16px; right:16px; background:rgba(30,41,59,0.95); padding:6px 14px; font-size:12px; font-weight:600; border-radius:6px; border:1px solid var(--border); z-index:999; backdrop-filter:blur(4px);">0 marcadores activos</div>
                         </div>
 
                         <div class="table-card">
-                            <div class="card-header">Resultados Filtrados Activos</div>
+                            <div class="card-header">Vistas de Expedientes Sincronizados</div>
                             <div class="table-wrap">
                                 <table>
                                     <thead>
                                         <tr>
                                             <th>Referencia</th>
-                                            <th>Tipo</th>
+                                            <th>Tipología</th>
                                             <th>Solicitante</th>
-                                            <th>Localidad</th>
-                                            <th>Localización Física</th>
+                                            <th>Municipio</th>
                                             <th>Estado</th>
-                                            <th>Distancia</th>
-                                            <th>Valor Tasación</th>
+                                            <th>Proximidad</th>
+                                            <th>Valor Estimado</th>
                                         </tr>
                                     </thead>
                                     <tbody id="recordsBody">
-                                        <tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Cargando registros dinámicos…</td></tr>
+                                        <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:30px;">Cargando registros interactivos…</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -497,19 +694,19 @@
 
                         <div class="charts-grid">
                             <div class="chart-card">
-                                <h3>Distribución por Tipología</h3>
+                                <h3>Muestreo por Tipología Constructiva</h3>
                                 <canvas id="chartType"></canvas>
                             </div>
                             <div class="chart-card">
-                                <h3>Estados de Expedientes</h3>
+                                <h3>Estados de Expedición de Visados</h3>
                                 <canvas id="chartStatus"></canvas>
                             </div>
                             <div class="chart-card" style="grid-column: 1 / -1;">
-                                <h3>Top Municipios con Mayor Volumen</h3>
+                                <h3>Distribución Territorial (Top Municipios)</h3>
                                 <canvas id="chartMunicipios"></canvas>
                             </div>
                             <div class="chart-card" style="grid-column: 1 / -1;">
-                                <h3>Análisis de Correlación: Valor (€) vs Superficie (m²)</h3>
+                                <h3>Dispersión: Valor Económico (€) vs Superficie Útil (m²)</h3>
                                 <canvas id="chartValorSuperficie"></canvas>
                             </div>
                         </div>
@@ -519,29 +716,27 @@
 
             <div id="sec-database" class="view-section">
                 <div class="section-header">
-                    <h2>Base de Datos Completa</h2>
-                    <p>Historial global de expedientes almacenados en PostgREST.</p>
+                    <h2>Base de Datos Global</h2>
+                    <p>Explotación de registros directos de auditorías y tasaciones indexadas en PostgREST.</p>
                 </div>
                 <div class="table-card">
-                    <div class="card-header">Registros Totales</div>
+                    <div class="card-header">Historial Completo Auditado</div>
                     <div class="table-wrap">
                         <table>
                             <thead>
                                 <tr>
                                     <th>Referencia</th>
-                                    <th>Tipo</th>
+                                    <th>Tipo de Bien</th>
                                     <th>Solicitante</th>
-                                    <th>Localidad</th>
-                                    <th>Localización Física</th>
-                                    <th>Estado</th>
-                                    <th>Distancia</th>
-                                    <th>Valor Tasación</th>
-                                    <th>Fecha</th>
-                                    <th>Acción</th>
+                                    <th>Localización</th>
+                                    <th>Estado Actual</th>
+                                    <th>Valor Estimado</th>
+                                    <th>Fecha Registro</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="recordsBodyFull">
-                                <tr><td colspan="10" style="text-align:center; color:var(--text-muted);">Cargando base de datos completa…</td></tr>
+                                <tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:30px;">Cargando base de datos completa de servidores…</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -550,78 +745,78 @@
 
             <div id="sec-import" class="view-section">
                 <div class="section-header">
-                    <h2>Importación Masiva</h2>
-                    <p>Sube archivos en formato estructurado JSON para insertarlos de forma directa en el sistema.</p>
+                    <h2>Módulo de Importación Masiva</h2>
+                    <p>Inyección de ficheros estructurados JSON para actualización masiva en caliente.</p>
                 </div>
                 <div class="dropzone" id="dropZone">
-                    <span class="material-symbols-outlined icon">upload_file</span>
-                    <h3 style="font-size:16px; margin-bottom:4px;">Arrastra tu archivo JSON aquí</h3>
-                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">o haz clic para explorar en tu disco local</p>
+                    <span class="material-symbols-outlined icon">cloud_upload</span>
+                    <h3 style="font-size:18px; margin-bottom:6px; font-weight:700;">Arrastra tus colecciones JSON aquí</h3>
+                    <p style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">o pincha para examinar en el explorador de archivos de Windows/Mac</p>
                     <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
                 </div>
-                <div id="importProgress" style="background:var(--bg-card); border:1px solid var(--border); padding:16px; border-radius:8px; min-height:50px; font-size:14px; color:var(--text-muted);">
-                    Esperando archivo...
+                <div id="importProgress" style="background:var(--bg-card); border:1px solid var(--border); padding:20px; border-radius:12px; font-size:14px; color:var(--text-muted); font-weight:500;">
+                    Estado del cargador: Sin tareas pendientes en cola.
                 </div>
             </div>
 
             <div id="sec-users" class="view-section">
                 <div class="section-header">
-                    <h2>Gestión y Permisos de Usuarios</h2>
-                    <p>Altas, modificaciones de roles y accesos técnicos a la plataforma.</p>
+                    <h2>Administración de Personal de Campo</h2>
+                    <p>Alta de analistas, asignación de claves encriptadas y roles operativos del ecosistema.</p>
                 </div>
 
                 <div class="usuarios-layout">
                     <div class="panel-filtros">
-                        <h3 id="formUsuarioTitulo" style="font-size:14px; font-weight:700; margin-bottom:16px; color:var(--text-muted); text-transform:uppercase;">Crear Nuevo Usuario</h3>
+                        <h3 id="formUsuarioTitulo" style="font-size:13px; font-weight:700; margin-bottom:20px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Ficha de Operario</h3>
                         <form id="form-usuario">
                             <div class="form-group">
-                                <label>Dirección de Email</label>
-                                <input type="email" id="userEmail" class="form-control" required placeholder="nombre@empresa.com">
+                                <label>Correo Electrónico Privado</label>
+                                <input type="email" id="userEmail" class="form-control" required placeholder="analista@empresa.com">
                             </div>
                             <div class="form-group">
-                                <label>Contraseña de Acceso</label>
+                                <label>Código Clave de Acceso</label>
                                 <input type="password" id="userPassword" class="form-control" required placeholder="••••••••">
                             </div>
                             <div class="form-group">
-                                <label>Rol Asignado</label>
+                                <label>Rango de Permisos</label>
                                 <select id="userRole" class="form-control">
-                                    <option value="tasador">Tasador Técnico</option>
-                                    <option value="admin">Administrador</option>
-                                    <option value="consulta">Solo Consulta</option>
+                                    <option value="tasador">Tasador de Campo</option>
+                                    <option value="admin">Administrador General</option>
+                                    <option value="consulta">Auditor Invitado (Lectura)</option>
                                 </select>
                             </div>
-                            <div style="display:flex; gap:8px; margin-top:12px;">
-                                <button type="submit" class="btn">Guardar Cambios</button>
-                                <button type="button" id="btnCancelarUser" class="btn" style="background:var(--bg-input); border:1px solid var(--border); color:var(--text-main);">Cancelar</button>
+                            <div style="display:flex; gap:10px; margin-top:20px;">
+                                <button type="submit" class="btn">Confirmar Alta</button>
+                                <button type="button" id="btnCancelarUser" class="btn" style="background:var(--bg-input); border:1px solid var(--border); color:var(--text-main);">Anular</button>
                             </div>
                         </form>
                     </div>
 
-                    <div style="display:flex; flex-direction:column; gap:16px;">
-                        <div style="display:flex; gap:12px;">
-                            <input type="text" id="userSearch" class="form-control" placeholder="Filtrar usuarios por email..." style="flex:1;">
-                            <select id="userRoleFilter" class="form-control" style="width:160px;">
-                                <option value="">Todos los roles</option>
-                                <option value="tasador">Tasador</option>
-                                <option value="admin">Admin</option>
-                                <option value="consulta">Consulta</option>
+                    <div style="display:flex; flex-direction:column; gap:20px;">
+                        <div style="display:flex; gap:16px;">
+                            <input type="text" id="userSearch" class="form-control" placeholder="Buscar operarios por email corporativo...">
+                            <select id="userRoleFilter" class="form-control" style="width:180px;">
+                                <option value="">Todos los rangos</option>
+                                <option value="tasador">Tasadores</option>
+                                <option value="admin">Admins</option>
+                                <option value="consulta">Consultores</option>
                             </select>
                         </div>
 
-                        <div id="usuariosMsg" style="font-size:13px; min-height:18px;"></div>
+                        <div id="usuariosMsg" style="font-size:13px; font-weight:500;"></div>
 
                         <div class="table-card">
-                            <div class="card-header">Usuarios Registrados del Sistema</div>
+                            <div class="card-header">Cuentas con Permiso de Autenticación</div>
                             <div class="table-wrap">
                                 <table>
                                     <thead>
                                         <tr>
-                                            <th>Usuario / Datos de Cuenta</th>
-                                            <th style="width:160px;">Acción</th>
+                                            <th>Credencial de Acceso / Privilegios</th>
+                                            <th style="width:140px; text-align:center;">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody id="usuariosBody">
-                                        <tr><td colspan="2" style="text-align:center; color:var(--text-muted);">Cargando cuentas…</td></tr>
+                                        <tr><td colspan="2" style="text-align:center; color:var(--text-muted); padding:24px;">Leyendo bases de datos de personal…</td></tr>
                                     </tbody>
                                 </table>
                             </div>
