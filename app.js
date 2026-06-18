@@ -11,9 +11,13 @@
     editingUserId: null
   };
 
+  // Mapeo unificado con los IDs exactos del index.html
   const els = {
+    // Vistas principales
     authView: document.getElementById('auth-view'),
     appView: document.getElementById('app-view'),
+    
+    // Login
     loginEmail: document.getElementById('loginEmail'),
     loginPassword: document.getElementById('loginPassword'),
     btnLogin: document.getElementById('btnLogin'),
@@ -21,10 +25,12 @@
     loginError: document.getElementById('loginError'),
     userBadge: document.getElementById('userBadge'),
 
+    // KPIs Dashboard
     kpiTotal: document.getElementById('kpiTotal'),
     kpiPending: document.getElementById('kpiPending'),
     kpiDone: document.getElementById('kpiDone'),
 
+    // Filtros Avanzados (Sección Dashboard)
     advSearch: document.getElementById('advSearch'),
     advType: document.getElementById('advType'),
     advMunicipio: document.getElementById('advMunicipio'),
@@ -36,38 +42,29 @@
     advDistanceTown: document.getElementById('advDistanceTown'),
     mapCounter: document.getElementById('mapCounter'),
 
-    recordsBody: document.getElementById('recordsBody'),
-    recordsBodyFull: document.getElementById('recordsBodyFull'),
+    // Tablas contenedoras
+    recordsBody: document.getElementById('recordsBody'),         // Dashboard
+    recordsBodyFull: document.getElementById('recordsBodyFull'), // Base de Datos Completa
 
+    // Dropzone / Importación
     dropZone: document.getElementById('dropZone'),
     jsonFileInput: document.getElementById('jsonFileInput'),
     importProgress: document.getElementById('importProgress'),
 
+    // Gestión de Usuarios
     userSearch: document.getElementById('userSearch'),
     userRoleFilter: document.getElementById('userRoleFilter'),
-    usersBody: document.getElementById('usersBody'),
-    btnAddUser: document.getElementById('btnAddUser'),
-
-    detailModal: document.getElementById('detailModal'),
-    detailContent: document.getElementById('detailContent'),
-    closeDetailModal: document.getElementById('closeDetailModal'),
-
-    userModal: document.getElementById('userModal'),
-    userModalTitle: document.getElementById('userModalTitle'),
-    userModalError: document.getElementById('userModalError'),
-    userEmail: document.getElementById('userEmail'),
-    userPassword: document.getElementById('userPassword'),
-    userName: document.getElementById('userName'),
-    userRole: document.getElementById('userRole'),
-    userActive: document.getElementById('userActive'),
-    btnSaveUser: document.getElementById('btnSaveUser'),
-    btnCancelUser: document.getElementById('btnCancelUser'),
+    usersBody: document.getElementById('usuariosBody'),          // "usuariosBody" en HTML
+    usuariosMsg: document.getElementById('usuariosMsg'),
+    
+    // Modales (Ficha detalle e Info de usuario)
+    modalFicha: document.getElementById('modal-ficha'),
+    modalContenido: document.getElementById('modal-contenido'),
+    btnCerrarModal: document.getElementById('btnCerrarModal'),
   };
 
   const log = (text) => { console.log(`[LOG] ${text}`); };
-
   const escapeHtml = (str) => String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-
   const formatEuro = (val) => Number(val || 0).toLocaleString('es-ES') + ' €';
 
   const parseRange = (str) => {
@@ -96,9 +93,10 @@
   };
 
   // ==========================================
-  // 🔐 AUTENTICACIÓN
+  // 🔐 AUTENTICACIÓN Y NAVEGACIÓN
   // ==========================================
   const ejecutarLogin = async () => {
+    if (!els.loginEmail || !els.loginPassword) return;
     const email = els.loginEmail.value.trim();
     const password = els.loginPassword.value;
     if (els.loginError) els.loginError.textContent = '';
@@ -107,8 +105,7 @@
       const res = await fetch(`${state.apiBase}/usuarios?email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(password)}`);
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
-        els.loginError.textContent = `Error del servidor (${res.status}): ${errBody.message || 'sin detalle'}`;
-        console.error('Respuesta PostgREST:', errBody);
+        if (els.loginError) els.loginError.textContent = `Error del servidor (${res.status}): ${errBody.message || 'sin detalle'}`;
         return;
       }
       const userArray = await res.json();
@@ -116,18 +113,18 @@
         localStorage.setItem('session_user', JSON.stringify(userArray[0]));
         inicializarSesionDeUsuario(userArray[0]);
       } else {
-        els.loginError.textContent = 'Credenciales no válidas en PostgreSQL.';
+        if (els.loginError) els.loginError.textContent = 'Credenciales no válidas en PostgreSQL.';
       }
     } catch (err) {
-      els.loginError.textContent = 'Fallo de red: ' + err.message;
-      console.error('Error de red en login:', err);
+      if (els.loginError) els.loginError.textContent = 'Fallo de red: ' + err.message;
     }
   };
 
   const inicializarSesionDeUsuario = (user) => {
-    if (els.userBadge) els.userBadge.textContent = `Usuario: ${user.email} (${user.rol || 'tasador'})`;
+    if (els.userBadge) els.userBadge.textContent = `${user.email} (${user.rol || 'tasador'})`;
     if (els.authView) els.authView.style.display = 'none';
     if (els.appView) els.appView.style.display = 'flex';
+    
     inicializarMapaGis();
     cargarTasacionesDesdeBBDD();
     cargarUsuarios();
@@ -141,6 +138,34 @@
       if (els.authView) els.authView.style.display = 'grid';
       if (els.appView) els.appView.style.display = 'none';
     }
+  };
+
+  const ejecutarLogout = () => {
+    localStorage.removeItem('session_user');
+    location.reload();
+  };
+
+  const inicializarNavegacion = () => {
+    const links = document.querySelectorAll('.nav a[data-target]');
+    const sections = document.querySelectorAll('.view-section');
+
+    links.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetSectionId = link.getAttribute('data-target');
+
+        links.forEach(l => l.classList.remove('active'));
+        sections.forEach(s => s.classList.remove('active'));
+
+        link.classList.add('active');
+        const targetSection = document.getElementById(targetSectionId);
+        if (targetSection) targetSection.classList.add('active');
+
+        if (targetSectionId === 'sec-dashboard' && state.map) {
+          setTimeout(() => state.map.invalidateSize(), 200);
+        }
+      });
+    });
   };
 
   // ==========================================
@@ -193,7 +218,7 @@
   };
 
   // ==========================================
-  // 📊 GRÁFICAS
+  // 📊 GRÁFICAS (Chart.js v4)
   // ==========================================
   const destroyCharts = () => {
     Object.values(state.charts).forEach(chart => chart.destroy());
@@ -208,27 +233,24 @@
       municipios: document.getElementById('chartMunicipios')?.getContext('2d'),
       valorSuperficie: document.getElementById('chartValorSuperficie')?.getContext('2d'),
     };
-
     const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16'];
 
-    // Tipos
     if (ctx.type) {
       const typeCounts = {};
-      state.records.forEach(r => { typeCounts[r.tipo] = (typeCounts[r.tipo] || 0) + 1; });
+      state.records.forEach(r => { if(r.tipo) typeCounts[r.tipo] = (typeCounts[r.tipo] || 0) + 1; });
       state.charts.type = new Chart(ctx.type, {
         type: 'doughnut',
         data: {
           labels: Object.keys(typeCounts),
           datasets: [{ data: Object.values(typeCounts), backgroundColor: colors, borderWidth: 0 }]
         },
-        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc', font: { family: 'Inter' } } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc', font: { family: 'Inter', size: 11 } } } } }
       });
     }
 
-    // Estados
     if (ctx.status) {
       const statusCounts = {};
-      state.records.forEach(r => { statusCounts[r.estado] = (statusCounts[r.estado] || 0) + 1; });
+      state.records.forEach(r => { if(r.estado) statusCounts[r.estado] = (statusCounts[r.estado] || 0) + 1; });
       const statusColors = { 'Finalizado': '#22c55e', 'En proceso': '#3b82f6', 'Pendiente': '#f59e0b' };
       state.charts.status = new Chart(ctx.status, {
         type: 'pie',
@@ -236,11 +258,10 @@
           labels: Object.keys(statusCounts),
           datasets: [{ data: Object.values(statusCounts), backgroundColor: Object.keys(statusCounts).map(k => statusColors[k] || '#64748b'), borderWidth: 0 }]
         },
-        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc', font: { family: 'Inter' } } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc', font: { family: 'Inter', size: 11 } } } } }
       });
     }
 
-    // Top 10 Municipios
     if (ctx.municipios) {
       const muniCounts = {};
       state.records.forEach(r => { if (r.localidad) muniCounts[r.localidad] = (muniCounts[r.localidad] || 0) + 1; });
@@ -254,7 +275,7 @@
         options: {
           indexAxis: 'y',
           responsive: true,
-          maintainAspectRatio: true,
+          maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
             x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
@@ -264,11 +285,10 @@
       });
     }
 
-    // Valor vs Superficie (scatter)
     if (ctx.valorSuperficie) {
       const scatterData = state.records
         .filter(r => r.valor && r.superficie)
-        .map(r => ({ x: Number(r.superficie), y: Number(r.valor), label: r.referencia }))
+        .map(r => ({ x: Number(r.superficie), y: Number(r.valor) }))
         .slice(0, 200);
       state.charts.valorSuperficie = new Chart(ctx.valorSuperficie, {
         type: 'scatter',
@@ -277,12 +297,12 @@
             label: 'Valor (€) vs Superficie (m²)',
             data: scatterData,
             backgroundColor: 'rgba(59, 130, 246, 0.6)',
-            pointRadius: 5
+            pointRadius: 4
           }]
         },
         options: {
           responsive: true,
-          maintainAspectRatio: true,
+          maintainAspectRatio: false,
           plugins: { legend: { labels: { color: '#f8fafc' } } },
           scales: {
             x: { title: { display: true, text: 'Superficie (m²)', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
@@ -294,7 +314,7 @@
   };
 
   // ==========================================
-  // 📑 DATOS Y RENDERIZADO
+  // 📑 DATOS Y RENDERS DE TABLAS
   // ==========================================
   const cargarTasacionesDesdeBBDD = async () => {
     try {
@@ -368,6 +388,7 @@
       });
     }
 
+    // Actualización de KPIs en UI
     if (els.kpiTotal) els.kpiTotal.textContent = state.records.length;
     if (els.kpiPending) els.kpiPending.textContent = state.records.filter(r => r.estado !== 'Finalizado').length;
     if (els.kpiDone) els.kpiDone.textContent = state.records.filter(r => r.estado === 'Finalizado').length;
@@ -393,7 +414,7 @@
         }
       }
 
-      return `<tr data-id="${escapeHtml(r.id || r.referencia)}" style="cursor:pointer;">
+      return `<tr data-id="${escapeHtml(r.id || r.referencia)}">
         <td><strong>${escapeHtml(r.referencia)}</strong></td>
         <td>${escapeHtml(r.tipo)}</td>
         <td>${escapeHtml(r.propietario)}</td>
@@ -413,6 +434,7 @@
   const renderRecordsFull = () => {
     if (!els.recordsBodyFull) return;
     const query = els.userSearch?.value.trim().toLowerCase() || '';
+    
     let filtrados = state.records.filter(r => {
       return !query || [r.referencia, r.propietario, r.localidad, r.tipo].some(v => String(v ?? '').toLowerCase().includes(query));
     });
@@ -420,7 +442,7 @@
     els.recordsBodyFull.innerHTML = filtrados.map(r => {
       const badgeClass = r.estado === 'Finalizado' ? 'finalizado' : (r.estado === 'En proceso' ? 'proceso' : 'pendiente');
       const valorEuro = formatEuro(r.valor);
-      return `<tr data-id="${escapeHtml(r.id || r.referencia)}" style="cursor:pointer;">
+      return `<tr data-id="${escapeHtml(r.id || r.referencia)}">
         <td><strong>${escapeHtml(r.referencia)}</strong></td>
         <td>${escapeHtml(r.tipo)}</td>
         <td>${escapeHtml(r.propietario)}</td>
@@ -453,32 +475,30 @@
     const lat = coords[0] ? parseFloat(coords[0]).toFixed(6) : '—';
     const lng = coords[1] ? parseFloat(coords[1]).toFixed(6) : '—';
 
-    els.detailContent.innerHTML = `
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:15px;">
-        <div><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Referencia</label><div style="font-weight:600;">${escapeHtml(record.referencia)}</div></div>
-        <div><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Tipo</label><div>${escapeHtml(record.tipo)}</div></div>
-        <div><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Propietario</label><div>${escapeHtml(record.propietario)}</div></div>
-        <div><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Municipio</label><div>${escapeHtml(record.localidad)}</div></div>
-        <div><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Estado</label><div><span class="badge ${record.estado === 'Finalizado' ? 'finalizado' : (record.estado === 'En proceso' ? 'proceso' : 'pendiente')}">${escapeHtml(record.estado)}</span></div></div>
-        <div><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Valor</label><div style="font-weight:600; color:var(--success);">${valorEuro}</div></div>
-        <div><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Superficie (m²)</label><div>${escapeHtml(record.superficie || '—')}</div></div>
-        <div><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Fecha</label><div>${escapeHtml(record.fecha ? record.fecha.slice(0,10) : '—')}</div></div>
-        <div><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Latitud</label><div>${lat}</div></div>
-        <div><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Longitud</label><div>${lng}</div></div>
-        <div style="grid-column:1/-1;"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Paraje / Lote</label><div>${escapeHtml(record.lote || '—')}</div></div>
-        <div style="grid-column:1/-1;"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Dirección Mapeada</label><div>Polígono / Parcela Física</div></div>
-        <div style="grid-column:1/-1;"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Observaciones</label><div>${escapeHtml(record.observaciones || 'Sin observaciones')}</div></div>
-      </div>
-      <div style="margin-top:15px; text-align:right;">
-        <button id="btnCloseDetail" style="background:var(--border); color:var(--text-main); border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">Cerrar</button>
+    if (!els.modalContenido || !els.modalFicha) return;
+
+    els.modalContenido.innerHTML = `
+      <h3 style="font-size:18px; font-weight:700; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:8px;">Detalle del Expediente</h3>
+      <div class="modal-grid">
+        <div class="modal-field"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Referencia</label><div style="font-weight:600; margin-top:3px;">${escapeHtml(record.referencia)}</div></div>
+        <div class="modal-field"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Tipo de Inmueble</label><div style="margin-top:3px;">${escapeHtml(record.tipo)}</div></div>
+        <div class="modal-field"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Propietario / Solicitante</label><div style="margin-top:3px;">${escapeHtml(record.propietario)}</div></div>
+        <div class="modal-field"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Municipio / Localidad</label><div style="margin-top:3px;">${escapeHtml(record.localidad)}</div></div>
+        <div class="modal-field"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Estado</label><div style="margin-top:3px;"><span class="badge ${record.estado === 'Finalizado' ? 'finalizado' : (record.estado === 'En proceso' ? 'proceso' : 'pendiente')}">${escapeHtml(record.estado)}</span></div></div>
+        <div class="modal-field"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Valor de Tasación</label><div style="font-weight:700; color:var(--success); margin-top:3px;">${valorEuro}</div></div>
+        <div class="modal-field"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Superficie (m²)</label><div style="margin-top:3px;">${escapeHtml(record.superficie || '—')} m²</div></div>
+        <div class="modal-field"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Fecha Registro</label><div style="margin-top:3px;">${escapeHtml(record.fecha ? record.fecha.slice(0,10) : '—')}</div></div>
+        <div class="modal-field"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Latitud</label><div style="margin-top:3px;">${lat}</div></div>
+        <div class="modal-field"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Longitud</label><div style="margin-top:3px;">${lng}</div></div>
+        <div class="modal-field" style="grid-column: 1 / -1;"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Ubicación / Paraje / Lote</label><div style="margin-top:3px;">${escapeHtml(record.lote || '—')}</div></div>
+        <div class="modal-field" style="grid-column: 1 / -1;"><label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Observaciones</label><div style="margin-top:3px; font-style:italic; color:#cbd5e1;">${escapeHtml(record.observaciones || 'Sin observaciones adicionales.')}</div></div>
       </div>
     `;
-    els.detailModal.style.display = 'grid';
-    document.getElementById('btnCloseDetail')?.addEventListener('click', () => { els.detailModal.style.display = 'none'; });
+    els.modalFicha.classList.add('open');
   };
 
   // ==========================================
-  // 📥 IMPORTACIÓN MULTI-ARCHIVO
+  // 📥 IMPORTACIÓN DE ARCHIVOS JSON
   // ==========================================
   const procesarArchivoJSON = async (file) => {
     return new Promise((resolve) => {
@@ -487,7 +507,7 @@
         try {
           let rawData = JSON.parse(e.target.result);
           let item = {};
-
+          
           if (rawData.identificacion_informe || rawData.datos_catastrales) {
             let valorStr = rawData.valores_tasacion?.valor_comparacion?.valor_total || "0";
             let valorLimpio = Number(valorStr.replace(/\./g, '').split(',')[0].replace(/[^0-9]/g, '')) || 0;
@@ -495,7 +515,7 @@
             let lat = rawData.identificacion_y_localizacion?.coordenadas_gps?.latitud || "36.8381";
             let lng = rawData.identificacion_y_localizacion?.coordenadas_gps?.longitud || "-2.4597";
             let superficie = rawData.identificacion_y_localizacion?.superficie_total || rawData.datos_catastrales?.superficie_construida || null;
-
+            
             item = {
               referencia: rawData.datos_catastrales?.referencias?.[0]?.referencia_catastral || ("S/R-" + Date.now()),
               tipo: rawData.identificacion_y_localizacion?.clase_general_inmueble || "Finca Rústica",
@@ -514,18 +534,13 @@
 
           const response = await fetch(`${state.apiBase}/importacion_tasaciones`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
             body: JSON.stringify(item)
           });
-
-          if (response.ok) {
-            resolve({ ok: true, file: file.name });
-          } else {
-            const err = await response.json().catch(() => ({}));
-            resolve({ ok: false, file: file.name, error: err.message || 'Duplicado' });
-          }
+          resolve(response.ok);
         } catch (err) {
-          resolve({ ok: false, file: file.name, error: err.message });
+          console.error("Error interpretando JSON:", err);
+          resolve(false);
         }
       };
       reader.readAsText(file);
@@ -533,191 +548,133 @@
   };
 
   const handleFiles = async (files) => {
-    const fileArray = Array.from(files);
-    if (!fileArray.length) return;
-
-    els.importProgress.style.display = 'block';
-    els.importProgress.innerHTML = `Procesando ${fileArray.length} archivo(s)...`;
-
-    let success = 0, failed = 0;
-    const results = [];
-
-    for (const file of fileArray) {
-      els.importProgress.innerHTML = `Procesando: ${file.name} (${success + failed + 1}/${fileArray.length})`;
-      const result = await procesarArchivoJSON(file);
-      results.push(result);
-      if (result.ok) success++; else failed++;
+    if (els.importProgress) els.importProgress.textContent = `Procesando ${files.length} archivo(s)...`;
+    let correctos = 0;
+    for (let i = 0; i < files.length; i++) {
+      const ok = await procesarArchivoJSON(files[i]);
+      if (ok) correctos++;
     }
-
-    let html = `<strong>${success} subidos, ${failed} fallidos</strong><br><br>`;
-    results.forEach(r => {
-      html += `<div style="color:${r.ok ? 'var(--success)' : 'var(--danger)'}; font-size:13px; margin:4px 0;">${r.file}: ${r.ok ? '✅ OK' : '❌ ' + r.error}</div>`;
-    });
-    els.importProgress.innerHTML = html;
-
-    if (success > 0) {
-      await cargarTasacionesDesdeBBDD();
-    }
+    if (els.importProgress) els.importProgress.textContent = `Éxito: ${correctos} de ${files.length} cargados con éxito.`;
+    cargarTasacionesDesdeBBDD();
   };
 
   // ==========================================
   // 👥 GESTIÓN DE USUARIOS
   // ==========================================
   const cargarUsuarios = async () => {
+    if (!els.usersBody) return;
     try {
-      const res = await fetch(`${state.apiBase}/usuarios?order=id.desc`);
+      const res = await fetch(`${state.apiBase}/usuarios?order=email.asc`);
       if (res.ok) {
         state.users = await res.json();
-        renderUsers();
+        renderUsuarios();
       }
-    } catch (e) { console.error(e); }
+    } catch (err) {
+      console.error("Error al traer usuarios:", err);
+    }
   };
 
-  const renderUsers = () => {
+  const renderUsuarios = () => {
     if (!els.usersBody) return;
     const query = els.userSearch?.value.trim().toLowerCase() || '';
-    const roleFilter = els.userRoleFilter?.value || '';
-    let filtrados = (state.users || []).filter(u => {
-      return (!query || (u.email?.toLowerCase().includes(query)) || (u.nombre?.toLowerCase().includes(query)))
-        && (!roleFilter || u.rol === roleFilter);
+
+    let filtrados = state.users.filter(u => {
+      return !query || String(u.email).toLowerCase().includes(query);
     });
 
-    els.usersBody.innerHTML = filtrados.map(u => `
-      <tr>
-        <td>${escapeHtml(u.id)}</td>
-        <td>${escapeHtml(u.email)}</td>
-        <td>${escapeHtml(u.nombre || '—')}</td>
-        <td><span class="badge" style="background:rgba(59,130,246,0.15); color:var(--primary);">${escapeHtml(u.rol || 'tasador')}</span></td>
-        <td><span class="badge" style="background:rgba(34,197,94,0.15); color:var(--success);">${u.activo ? 'Sí' : 'No'}</span></td>
-        <td>${u.ultimo_acceso ? escapeHtml(u.ultimo_acceso.slice(0,10)) : '—'}</td>
+    els.usersBody.innerHTML = filtrados.map(u => {
+      return `<tr>
+        <td><strong>${escapeHtml(u.email)}</strong></td>
         <td>
-          <button class="btn-edit-user" data-id="${u.id}" style="background:none; border:none; color:var(--primary); cursor:pointer; margin-right:8px;">Editar</button>
-          <button class="btn-delete-user" data-id="${u.id}" style="background:none; border:none; color:var(--danger); cursor:pointer;">Eliminar</button>
+          <button class="btn-borrar-user" data-email="${escapeHtml(u.email)}" style="background:var(--danger); color:white; border:none; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:12px;">Eliminar</button>
         </td>
-      </tr>
-    `).join('') || `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Sin usuarios</td></tr>`;
+      </tr>`;
+    }).join('') || `<tr><td colspan="2" style="text-align:center; color:var(--text-muted);">No hay usuarios registrados.</td></tr>`;
 
-    els.usersBody.querySelectorAll('.btn-edit-user').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); abrirModalUsuario(btn.dataset.id); }));
-    els.usersBody.querySelectorAll('.btn-delete-user').forEach(btn => btn.addEventListener('click', async (e) => { e.stopPropagation(); if (confirm('Eliminar este usuario?')) await eliminarUsuario(btn.dataset.id); }));
+    els.usersBody.querySelectorAll('.btn-borrar-user').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        eliminarUsuarioBBDD(btn.dataset.email);
+      });
+    });
   };
 
-  const abrirModalUsuario = (id = null) => {
-    state.editingUserId = id;
-    els.userModalError.textContent = '';
-    els.userEmail.value = '';
-    els.userPassword.value = '';
-    els.userName.value = '';
-    els.userRole.value = 'tasador';
-    els.userActive.checked = true;
-
-    if (id) {
-      const user = state.users.find(u => u.id == id);
-      if (user) {
-        els.userModalTitle.textContent = 'Editar Usuario';
-        els.userEmail.value = user.email || '';
-        els.userName.value = user.nombre || '';
-        els.userRole.value = user.rol || 'tasador';
-        els.userActive.checked = user.activo !== false;
-        els.userPassword.placeholder = 'Dejar en blanco para no cambiar';
-      }
-    } else {
-      els.userModalTitle.textContent = 'Nuevo Usuario';
-      els.userPassword.placeholder = '••••••••';
-    }
-    els.userModal.style.display = 'grid';
-  };
-
-  const guardarUsuario = async () => {
-    const email = els.userEmail.value.trim();
-    const password = els.userPassword.value;
-    const nombre = els.userName.value.trim();
-    const rol = els.userRole.value;
-    const activo = els.userActive.checked;
-
-    if (!email || (!state.editingUserId && !password) || !nombre) {
-      els.userModalError.textContent = 'Completa todos los campos obligatorios.';
-      return;
-    }
-
-    const payload = { email, nombre, rol, activo };
-    if (password) payload.password = password;
-
+  const eliminarUsuarioBBDD = async (email) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar al usuario ${email}?`)) return;
     try {
-      let res;
-      if (state.editingUserId) {
-        res = await fetch(`${state.apiBase}/usuarios?id=eq.${state.editingUserId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Prefer': 'return=representation' }, body: JSON.stringify(payload) });
-      } else {
-        res = await fetch(`${state.apiBase}/usuarios`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Prefer': 'return=representation' }, body: JSON.stringify(payload) });
-      }
+      const res = await fetch(`${state.apiBase}/usuarios?email=eq.${encodeURIComponent(email)}`, {
+        method: 'DELETE'
+      });
       if (res.ok) {
-        els.userModal.style.display = 'none';
-        await cargarUsuarios();
+        if (els.usuariosMsg) els.usuariosMsg.innerHTML = `<span style="color:var(--success)">Usuario eliminado</span>`;
+        cargarUsuarios();
       } else {
-        const err = await res.json().catch(() => ({}));
-        els.userModalError.textContent = err.message || 'Error guardando usuario';
+        if (els.usuariosMsg) els.usuariosMsg.innerHTML = `<span style="color:var(--danger)">Error al eliminar</span>`;
       }
-    } catch (e) {
-      els.userModalError.textContent = 'Error de red: ' + e.message;
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const eliminarUsuario = async (id) => {
-    try {
-      const res = await fetch(`${state.apiBase}/usuarios?id=eq.${id}`, { method: 'DELETE' });
-      if (res.ok) await cargarUsuarios();
-      else alert('Error eliminando usuario');
-    } catch (e) { alert('Error de red'); }
-  };
-
   // ==========================================
-  // 🔗 NAVEGACIÓN Y EVENTOS
+  // 🛠️ EVENT LISTENERS Y BINDINGS
   // ==========================================
-  const navigate = (page) => {
-    document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('active', a.dataset.page === page));
-    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-    const target = document.getElementById(`page-${page}`);
-    if (target) target.classList.add('active');
-
-    if (page === 'dashboard') { renderSistemaCompleto(); renderCharts(); }
-    if (page === 'records') { renderRecordsFull(); }
-    if (page === 'users') { renderUsers(); }
-  };
-
-  const bindEvents = () => {
+  const asignarEventos = () => {
+    // Auth & Toolbar
     if (els.btnLogin) els.btnLogin.addEventListener('click', ejecutarLogin);
-    if (els.btnLogout) els.btnLogout.addEventListener('click', () => { localStorage.removeItem('session_user'); location.reload(); });
+    if (els.loginPassword) els.loginPassword.addEventListener('keydown', (e) => { if (e.key === 'Enter') ejecutarLogin(); });
+    if (els.btnLogout) els.btnLogout.addEventListener('click', ejecutarLogout);
 
-    document.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', (e) => { e.preventDefault(); navigate(a.dataset.page); }));
-
-    [els.advSearch, els.advType, els.advMunicipio, els.advStatus, els.advValueRange, els.advSurfaceRange, els.advDateFrom, els.advDateTo, els.advDistanceTown].forEach(el => {
-      if (el) el.addEventListener('input', renderSistemaCompleto);
+    // Búsquedas y filtros en tiempo real
+    const triggersFiltros = [
+      els.advSearch, els.advType, els.advMunicipio, els.advStatus,
+      els.advValueRange, els.advSurfaceRange, els.advDateFrom, els.advDateTo, els.advDistanceTown
+    ];
+    triggersFiltros.forEach(el => {
       if (el) el.addEventListener('change', renderSistemaCompleto);
     });
+    if (els.advSearch) els.advSearch.addEventListener('input', renderSistemaCompleto);
 
-    if (els.userSearch) els.userSearch.addEventListener('input', renderUsers);
-    if (els.userRoleFilter) els.userRoleFilter.addEventListener('change', renderUsers);
+    // Búsqueda de usuarios
+    if (els.userSearch) els.userSearch.addEventListener('input', renderUsuarios);
 
-    if (els.dropZone && els.jsonFileInput) {
-      els.dropZone.addEventListener('click', () => els.jsonFileInput.click());
-      els.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropZone.style.borderColor = 'var(--primary)'; els.dropZone.style.background = '#222f43'; });
-      els.dropZone.addEventListener('dragleave', () => { els.dropZone.style.borderColor = 'var(--border)'; els.dropZone.style.background = 'transparent'; });
-      els.dropZone.addEventListener('drop', (e) => { e.preventDefault(); els.dropZone.style.borderColor = 'var(--border)'; els.dropZone.style.background = 'transparent'; if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); });
-      els.jsonFileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFiles(e.target.files); e.target.value = ''; });
+    // Cierre de Modal Detalle
+    if (els.btnCerrarModal) {
+      els.btnCerrarModal.addEventListener('click', () => {
+        if (els.modalFicha) els.modalFicha.classList.remove('open');
+      });
+    }
+    if (els.modalFicha) {
+      els.modalFicha.addEventListener('click', (e) => {
+        if (e.target === els.modalFicha) els.modalFicha.classList.remove('open');
+      });
     }
 
-    if (els.closeDetailModal) els.closeDetailModal.addEventListener('click', () => { els.detailModal.style.display = 'none'; });
-    if (els.detailModal) els.detailModal.addEventListener('click', (e) => { if (e.target === els.detailModal) els.detailModal.style.display = 'none'; });
-
-    if (els.btnAddUser) els.btnAddUser.addEventListener('click', () => abrirModalUsuario(null));
-    if (els.btnSaveUser) els.btnSaveUser.addEventListener('click', guardarUsuario);
-    if (els.btnCancelUser) els.btnCancelUser.addEventListener('click', () => { els.userModal.style.display = 'none'; });
-    if (els.userModal) els.userModal.addEventListener('click', (e) => { if (e.target === els.userModal) els.userModal.style.display = 'none'; });
+    // Drag & Drop Zone
+    if (els.dropZone && els.jsonFileInput) {
+      els.dropZone.addEventListener('click', () => els.jsonFileInput.click());
+      els.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropZone.classList.add('drag-over'); });
+      els.dropZone.addEventListener('dragleave', () => { els.dropZone.classList.remove('drag-over'); });
+      els.dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        els.dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+      });
+      els.jsonFileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleFiles(e.target.files);
+        e.target.value = '';
+      });
+    }
   };
 
+  // ==========================================
+  // 🚀 ARRANQUE DE LA APLICACIÓN
+  // ==========================================
   const init = () => {
-    bindEvents();
+    asignarEventos();
+    inicializarNavegacion();
     verificarPersistenciaSesion();
   };
 
-  document.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('DOMContentLoaded', init);
 })();
