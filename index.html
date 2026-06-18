@@ -40,7 +40,7 @@
             overflow-x: hidden;
         }
 
-        /* ===== VISTA AUTH (LOGIN) ===== */
+        /* ===== VISTA DE AUTENTICACIÓN (LOGIN) ===== */
         #auth-view {
             display: grid;
             place-items: center;
@@ -72,15 +72,15 @@
             margin-bottom: 24px;
         }
 
-        /* ===== VISTA PRINCIPAL APLICACIÓN ===== */
+        /* ===== INTERFAZ GENERAL SPA ===== */
         #app-view {
-            display: none; /* Controlado dinámicamente por app.js */
+            display: none; /* Se controla dinámicamente mediante app.js */
             flex: 1;
             height: 100vh;
             overflow: hidden;
         }
 
-        /* Sidebar Navegación */
+        /* Barra Lateral de Navegación */
         .sidebar {
             width: 260px;
             background: var(--bg-card);
@@ -140,7 +140,7 @@
             word-break: break-all;
         }
 
-        /* Contenido Principal */
+        /* Contenedor Principal de Vistas */
         .main-content {
             flex: 1;
             display: flex;
@@ -215,7 +215,7 @@
 
         .btn:hover { background: var(--primary-hover); }
 
-        /* KPIs */
+        /* Cuadrícula de KPIs */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -253,7 +253,7 @@
             gap: 24px;
         }
 
-        /* Mapa Gis */
+        /* Entorno de Mapa */
         #map {
             height: 400px;
             width: 100%;
@@ -262,7 +262,7 @@
             z-index: 1;
         }
 
-        /* Tablas */
+        /* Tablas de Datos */
         .table-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -284,13 +284,13 @@
         tbody tr { cursor: pointer; transition: background 0.15s; }
         tbody tr:hover { background: rgba(255,255,255,0.03); }
 
-        /* Badges de estado */
+        /* Badges de Estado */
         .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
         .badge.finalizado { background: rgba(34,197,94,0.1); color: var(--success); }
         .badge.proceso { background: rgba(59,130,246,0.1); color: var(--primary); }
         .badge.pendiente { background: rgba(245,158,11,0.1); color: var(--warning); }
 
-        /* Gráficas Grid */
+        /* Cuadrícula de Gráficas */
         .charts-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -305,7 +305,7 @@
         }
         .chart-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text-muted); }
 
-        /* Dropzone / Import */
+        /* Zona Dropzone / Importación */
         .dropzone {
             border: 2px dashed var(--border);
             background: var(--bg-card);
@@ -318,7 +318,7 @@
         .dropzone:hover, .dropzone.drag-over { border-color: var(--primary); background: rgba(59,130,246,0.02); }
         .dropzone .icon { font-size: 48px; color: var(--text-muted); margin-bottom: 12px; }
 
-        /* Usuarios Layout */
+        /* Estructura sección de usuarios */
         .usuarios-layout {
             display: grid;
             grid-template-columns: 1fr 1.5fr;
@@ -349,132 +349,132 @@
 </head>
 <body>
 
-    <div id=\"auth-view\">
-        <div class=\"login-card\">
+    <div id="auth-view">
+        <div class="login-card">
             <h2>Panel Técnico</h2>
             <p>Introduce tus credenciales para acceder</p>
-            <div class=\"form-group\">
+            <div class="form-group">
                 <label>Email Corporativo</label>
-                <input type=\"email\" id=\"loginEmail\" class=\"form-control\" placeholder=\"ejemplo@empresa.com\" value=\"\">
+                <input type="email" id="loginEmail" class="form-control" placeholder="ejemplo@empresa.com">
             </div>
-            <div class=\"form-group\">
+            <div class="form-group">
                 <label>Contraseña</label>
-                <input type=\"password\" id=\"loginPassword\" class=\"form-control\" placeholder=\"••••••••\" value=\"\">
+                <input type="password" id="loginPassword" class="form-control" placeholder="••••••••">
             </div>
-            <div id=\"loginError\" style=\"color:var(--danger); font-size:13px; margin-bottom:16px; min-height:18px; text-align:center;\"></div>
-            <button id=\"btnLogin\" class=\"btn\">Iniciar Sesión</button>
+            <div id="loginError" style="color:var(--danger); font-size:13px; margin-bottom:16px; min-height:18px; text-align:center;"></div>
+            <button id="btnLogin" class="btn">Iniciar Sesión</button>
         </div>
     </div>
 
 
-    <div id=\"app-view\">
+    <div id="app-view">
         
-        <div class=\"sidebar\">
-            <div class=\"sidebar-top\">
-                <div class=\"brand\">
+        <div class="sidebar">
+            <div class="sidebar-top">
+                <div class="brand">
                     <h1>VALORACIONES</h1>
                 </div>
-                <div class=\"nav\">
-                    <a href=\"#\" data-target=\"sec-dashboard\" class=\"active\">
-                        <span class=\"material-symbols-outlined\">dashboard</span> Panel Principal
+                <div class="nav">
+                    <a href="#" data-target="sec-dashboard" class="active">
+                        <span class="material-symbols-outlined">dashboard</span> Panel Principal
                     </a>
-                    <a href=\"#\" data-target=\"sec-database\">
-                        <span class=\"material-symbols-outlined\">database</span> Base de Datos
+                    <a href="#" data-target="sec-database">
+                        <span class="material-symbols-outlined">database</span> Base de Datos
                     </a>
-                    <a href=\"#\" data-target=\"sec-import\">
-                        <span class=\"material-symbols-outlined\">upload_file</span> Importar Lotes
+                    <a href="#" data-target="sec-import">
+                        <span class="material-symbols-outlined">upload_file</span> Importar Lotes
                     </a>
-                    <a href=\"#\" data-target=\"sec-users\">
-                        <span class=\"material-symbols-outlined\">group</span> Configuración Usuarios
+                    <a href="#" data-target="sec-users">
+                        <span class="material-symbols-outlined">group</span> Configuración Usuarios
                     </a>
                 </div>
             </div>
-            <div class=\"sidebar-footer\">
-                <div id=\"userBadge\">Cargando usuario…</div>
-                <button id=\"btnLogout\" class=\"btn\" style=\"background:var(--bg-input); border:1px solid var(--border); color:var(--text-main); padding:8px;\">Cerrar Sesión</button>
+            <div class="sidebar-footer">
+                <div id="userBadge">Cargando perfil…</div>
+                <button id="btnLogout" class="btn" style="background:var(--bg-input); border:1px solid var(--border); color:var(--text-main); padding:8px;">Cerrar Sesión</button>
             </div>
         </div>
 
-        <div class=\"main-content\">
+        <div class="main-content">
 
-            <div id=\"sec-dashboard\" class=\"view-section active\">
-                <div class=\"section-header\">
+            <div id="sec-dashboard" class="view-section active">
+                <div class="section-header">
                     <h2>Panel Principal</h2>
                     <p>Análisis territorial de expedientes, gráficas dinámicas y entorno GIS.</p>
                 </div>
 
-                <div class=\"kpi-grid\">
-                    <div class=\"kpi-card\"><div class=\"kpi-label\">Total Registros</div><div class=\"kpi-val\" id=\"kpiTotal\">0</div></div>
-                    <div class=\"kpi-card\"><div class=\"kpi-label\">En Proceso / Pendientes</div><div class=\"kpi-val\" id=\"kpiPending\">0</div></div>
-                    <div class=\"kpi-card\"><div class=\"kpi-label\">Finalizados</div><div class=\"kpi-val\" id=\"kpiDone\">0</div></div>
+                <div class="kpi-grid">
+                    <div class="kpi-card"><div class="kpi-label">Total Registros</div><div class="kpi-val" id="kpiTotal">0</div></div>
+                    <div class="kpi-card"><div class="kpi-label">En Proceso / Pendientes</div><div class="kpi-val" id="kpiPending">0</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Finalizados</div><div class="kpi-val" id="kpiDone">0</div></div>
                 </div>
 
-                <div class=\"dashboard-layout\">
-                    <div class=\"panel-filtros\">
-                        <h3 style=\"font-size:14px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px;\">Filtros Avanzados</h3>
+                <div class="dashboard-layout">
+                    <div class="panel-filtros">
+                        <h3 style="font-size:14px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px;">Filtros Avanzados</h3>
                         
-                        <div class=\"form-group\">
+                        <div class="form-group">
                             <label>Búsqueda General</label>
-                            <input type=\"text\" id=\"advSearch\" class=\"form-control\" placeholder=\"Ref, propietario...\">
+                            <input type="text" id="advSearch" class="form-control" placeholder="Ref, solicitante...">
                         </div>
-                        <div class=\"form-group\">
+                        <div class="form-group">
                             <label>Tipo de Inmueble</label>
-                            <select id=\"advType\" class=\"form-control\">
-                                <option value=\"\">Todos los tipos</option>
-                                <option value=\"Rústico\">Rústico</option>
-                                <option value=\"Urbano\">Urbano</option>
-                                <option value=\"Industrial\">Industrial</option>
+                            <select id="advType" class="form-control">
+                                <option value="">Todos los tipos</option>
+                                <option value="Rústico">Rústico</option>
+                                <option value="Urbano">Urbano</option>
+                                <option value="Industrial">Industrial</option>
                             </select>
                         </div>
-                        <div class=\"form-group\">
+                        <div class="form-group">
                             <label>Municipio</label>
-                            <select id=\"advMunicipio\" class=\"form-control\"><option value=\"\">Todos los municipios</option></select>
+                            <select id="advMunicipio" class="form-control"><option value="">Todos los municipios</option></select>
                         </div>
-                        <div class=\"form-group\">
+                        <div class="form-group">
                             <label>Estado de la Tasación</label>
-                            <select id=\"advStatus\" class=\"form-control\">
-                                <option value=\"\">Todos los estados</option>
-                                <option value=\"Finalizado\">Finalizado</option>
-                                <option value=\"En proceso\">En proceso</option>
-                                <option value=\"Pendiente\">Pendiente</option>
+                            <select id="advStatus" class="form-control">
+                                <option value="">Todos los estados</option>
+                                <option value="Finalizado">Finalizado</option>
+                                <option value="En proceso">En proceso</option>
+                                <option value="Pendiente">Pendiente</option>
                             </select>
                         </div>
-                        <div class=\"form-group\">
+                        <div class="form-group">
                             <label>Rango de Valor (€)</label>
-                            <input type=\"text\" id=\"advValueRange\" class=\"form-control\" placeholder=\"Ej: 50000-150000\">
+                            <input type="text" id="advValueRange" class="form-control" placeholder="Ej: 50000-150000">
                         </div>
-                        <div class=\"form-group\">
+                        <div class="form-group">
                             <label>Rango Superficie (m²)</label>
-                            <input type=\"text\" id=\"advSurfaceRange\" class=\"form-control\" placeholder=\"Ej: 100-5000\">
+                            <input type="text" id="advSurfaceRange" class="form-control" placeholder="Ej: 100-5000">
                         </div>
-                        <div class=\"form-group\">
+                        <div class="form-group">
                             <label>Desde Fecha</label>
-                            <input type=\"date\" id=\"advDateFrom\" class=\"form-control\">
+                            <input type="date" id="advDateFrom" class="form-control">
                         </div>
-                        <div class=\"form-group\">
+                        <div class="form-group">
                             <label>Hasta Fecha</label>
-                            <input type=\"date\" id=\"advDateTo\" class=\"form-control\">
+                            <input type="date" id="advDateTo" class="form-control">
                         </div>
-                        <div class=\"form-group\">
+                        <div class="form-group">
                             <label>Ordenar por Cercanía a:</label>
-                            <select id=\"advDistanceTown\" class=\"form-control\"><option value=\"\">— Sin ordenar —</option></select>
+                            <select id="advDistanceTown" class="form-control"><option value="">— Sin ordenar —</option></select>
                         </div>
 
-                        <div class=\"filters-actions\" style=\"display: flex; flex-direction: column; gap: 10px; margin-top: 20px;\">
-                            <button id=\"btnAplicarFiltros\" class=\"btn\" style=\"padding: 10px;\">Aplicar Filtros</button>
-                            <button id=\"btnBorrarFiltros\" class=\"btn\" style=\"background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 10px;\">Borrar Filtros</button>
+                        <div class="filters-actions" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                            <button id="btnAplicarFiltros" class="btn" style="padding: 10px;">Aplicar Filtros</button>
+                            <button id="btnBorrarFiltros" class="btn" style="background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 10px;">Borrar Filtros</button>
                         </div>
                     </div>
 
-                    <div class=\"dashboard-main\">
-                        <div style=\"position:relative;\">
-                            <div id=\"map\"></div>
-                            <div id=\"mapCounter\" style=\"position:absolute; bottom:10px; right:10px; background:rgba(30,41,59,0.9); padding:4px 10px; font-size:11px; font-weight:600; border-radius:4px; border:1px solid var(--border); z-index:999;\">0 marcadores activos</div>
+                    <div class="dashboard-main">
+                        <div style="position:relative;">
+                            <div id="map"></div>
+                            <div id="mapCounter" style="position:absolute; bottom:10px; right:10px; background:rgba(30,41,59,0.9); padding:4px 10px; font-size:11px; font-weight:600; border-radius:4px; border:1px solid var(--border); z-index:999;">0 marcadores activos</div>
                         </div>
 
-                        <div class=\"table-card\">
-                            <div class=\"card-header\">Resultados Filtrados Activos</div>
-                            <div class=\"table-wrap\">
+                        <div class="table-card">
+                            <div class="card-header">Resultados Filtrados Activos</div>
+                            <div class="table-wrap">
                                 <table>
                                     <thead>
                                         <tr>
@@ -488,43 +488,43 @@
                                             <th>Valor Tasación</th>
                                         </tr>
                                     </thead>
-                                    <tbody id=\"recordsBody\">
-                                        <tr><td colspan=\"8\" style=\"text-align:center; color:var(--text-muted);\">Cargando registros dinámicos…</td></tr>
+                                    <tbody id="recordsBody">
+                                        <tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Cargando registros dinámicos…</td></tr>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
 
-                        <div class=\"charts-grid\">
-                            <div class=\"chart-card\">
+                        <div class="charts-grid">
+                            <div class="chart-card">
                                 <h3>Distribución por Tipología</h3>
-                                <canvas id=\"chartType\"></canvas>
+                                <canvas id="chartType"></canvas>
                             </div>
-                            <div class=\"chart-card\">
+                            <div class="chart-card">
                                 <h3>Estados de Expedientes</h3>
-                                <canvas id=\"chartStatus\"></canvas>
+                                <canvas id="chartStatus"></canvas>
                             </div>
-                            <div class=\"chart-card\" style=\"grid-column: 1 / -1;\">
+                            <div class="chart-card" style="grid-column: 1 / -1;">
                                 <h3>Top Municipios con Mayor Volumen</h3>
-                                <canvas id=\"chartMunicipios\"></canvas>
+                                <canvas id="chartMunicipios"></canvas>
                             </div>
-                            <div class=\"chart-card\" style=\"grid-column: 1 / -1;\">
+                            <div class="chart-card" style="grid-column: 1 / -1;">
                                 <h3>Análisis de Correlación: Valor (€) vs Superficie (m²)</h3>
-                                <canvas id=\"chartValorSuperficie\"></canvas>
+                                <canvas id="chartValorSuperficie"></canvas>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id=\"sec-database\" class=\"view-section\">
-                <div class=\"section-header\">
+            <div id="sec-database" class="view-section">
+                <div class="section-header">
                     <h2>Base de Datos Completa</h2>
                     <p>Historial global de expedientes almacenados en PostgREST.</p>
                 </div>
-                <div class=\"table-card\">
-                    <div class=\"card-header\">Registros Totales</div>
-                    <div class=\"table-wrap\">
+                <div class="table-card">
+                    <div class="card-header">Registros Totales</div>
+                    <div class="table-wrap">
                         <table>
                             <thead>
                                 <tr>
@@ -540,88 +540,88 @@
                                     <th>Acción</th>
                                 </tr>
                             </thead>
-                            <tbody id=\"recordsBodyFull\">
-                                <tr><td colspan=\"10\" style=\"text-align:center; color:var(--text-muted);\">Cargando base de datos completa…</td></tr>
+                            <tbody id="recordsBodyFull">
+                                <tr><td colspan="10" style="text-align:center; color:var(--text-muted);">Cargando base de datos completa…</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <div id=\"sec-import\" class=\"view-section\">
-                <div class=\"section-header\">
+            <div id="sec-import" class="view-section">
+                <div class="section-header">
                     <h2>Importación Masiva</h2>
                     <p>Sube archivos en formato estructurado JSON para insertarlos de forma directa en el sistema.</p>
                 </div>
-                <div class=\"dropzone\" id=\"dropZone\">
-                    <span class=\"material-symbols-outlined icon\">upload_file</span>
-                    <h3 style=\"font-size:16px; margin-bottom:4px;\">Arrastra tu archivo JSON aquí</h3>
-                    <p style=\"color:var(--text-muted); font-size:13px; margin-bottom:16px;\">o haz clic para explorar en tu disco local</p>
-                    <input type=\"file\" id=\"jsonFileInput\" accept=\".json\" style=\"display:none;\">
+                <div class="dropzone" id="dropZone">
+                    <span class="material-symbols-outlined icon">upload_file</span>
+                    <h3 style="font-size:16px; margin-bottom:4px;">Arrastra tu archivo JSON aquí</h3>
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;">o haz clic para explorar en tu disco local</p>
+                    <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
                 </div>
-                <div id=\"importProgress\" style=\"background:var(--bg-card); border:1px solid var(--border); padding:16px; border-radius:8px; min-height:50px; font-size:14px; color:var(--text-muted);\">
+                <div id="importProgress" style="background:var(--bg-card); border:1px solid var(--border); padding:16px; border-radius:8px; min-height:50px; font-size:14px; color:var(--text-muted);">
                     Esperando archivo...
                 </div>
             </div>
 
-            <div id=\"sec-users\" class=\"view-section\">
-                <div class=\"section-header\">
+            <div id="sec-users" class="view-section">
+                <div class="section-header">
                     <h2>Gestión y Permisos de Usuarios</h2>
                     <p>Altas, modificaciones de roles y accesos técnicos a la plataforma.</p>
                 </div>
 
-                <div class=\"usuarios-layout\">
-                    <div class=\"panel-filtros\">
-                        <h3 id=\"formUsuarioTitulo\" style=\"font-size:14px; font-weight:700; margin-bottom:16px; color:var(--text-muted); text-transform:uppercase;\">Crear Nuevo Usuario</h3>
-                        <form id=\"form-usuario-git\">
-                            <div class=\"form-group\">
+                <div class="usuarios-layout">
+                    <div class="panel-filtros">
+                        <h3 id="formUsuarioTitulo" style="font-size:14px; font-weight:700; margin-bottom:16px; color:var(--text-muted); text-transform:uppercase;">Crear Nuevo Usuario</h3>
+                        <form id="form-usuario">
+                            <div class="form-group">
                                 <label>Dirección de Email</label>
-                                <input type=\"email\" id=\"userEmail\" class=\"form-control\" required placeholder=\"nombre@empresa.com\">
+                                <input type="email" id="userEmail" class="form-control" required placeholder="nombre@empresa.com">
                             </div>
-                            <div class=\"form-group\">
+                            <div class="form-group">
                                 <label>Contraseña de Acceso</label>
-                                <input type=\"password\" id=\"userPassword\" class=\"form-control\" required placeholder=\"••••••••\">
+                                <input type="password" id="userPassword" class="form-control" required placeholder="••••••••">
                             </div>
-                            <div class=\"form-group\">
+                            <div class="form-group">
                                 <label>Rol Asignado</label>
-                                <select id=\"userRole\" class=\"form-control\">
-                                    <option value=\"tasador\">Tasador Técnico</option>
-                                    <option value=\"admin\">Administrador</option>
-                                    <option value=\"consulta\">Solo Consulta</option>
+                                <select id="userRole" class="form-control">
+                                    <option value="tasador">Tasador Técnico</option>
+                                    <option value="admin">Administrador</option>
+                                    <option value="consulta">Solo Consulta</option>
                                 </select>
                             </div>
-                            <div style=\"display:flex; gap:8px; margin-top:12px;\">
-                                <button type=\"submit\" class=\"btn\">Guardar Cambios</button>
-                                <button type=\"button\" id=\"btnCancelarUser\" class=\"btn\" style=\"background:var(--bg-input); border:1px solid var(--border); color:var(--text-main);\">Cancelar</button>
+                            <div style="display:flex; gap:8px; margin-top:12px;">
+                                <button type="submit" class="btn">Guardar Cambios</button>
+                                <button type="button" id="btnCancelarUser" class="btn" style="background:var(--bg-input); border:1px solid var(--border); color:var(--text-main);">Cancelar</button>
                             </div>
                         </form>
                     </div>
 
-                    <div style=\"display:flex; flex-direction:column; gap:16px;\">
-                        <div style=\"display:flex; gap:12px;\">
-                            <input type=\"text\" id=\"userSearch\" class=\"form-control\" placeholder=\"Filtrar usuarios por email...\" style=\"flex:1;\">
-                            <select id=\"userRoleFilter\" class=\"form-control\" style=\"width:160px;\">
-                                <option value=\"\">Todos los roles</option>
-                                <option value=\"tasador\">Tasador</option>
-                                <option value=\"admin\">Admin</option>
-                                <option value=\"consulta\">Consulta</option>
+                    <div style="display:flex; flex-direction:column; gap:16px;">
+                        <div style="display:flex; gap:12px;">
+                            <input type="text" id="userSearch" class="form-control" placeholder="Filtrar usuarios por email..." style="flex:1;">
+                            <select id="userRoleFilter" class="form-control" style="width:160px;">
+                                <option value="">Todos los roles</option>
+                                <option value="tasador">Tasador</option>
+                                <option value="admin">Admin</option>
+                                <option value="consulta">Consulta</option>
                             </select>
                         </div>
 
-                        <div id=\"usuariosMsg\" style=\"font-size:13px; min-height:18px;\"></div>
+                        <div id="usuariosMsg" style="font-size:13px; min-height:18px;"></div>
 
-                        <div class=\"table-card\">
-                            <div class=\"card-header\">Usuarios Registrados del Sistema</div>
-                            <div class=\"table-wrap\">
+                        <div class="table-card">
+                            <div class="card-header">Usuarios Registrados del Sistema</div>
+                            <div class="table-wrap">
                                 <table>
                                     <thead>
                                         <tr>
                                             <th>Usuario / Datos de Cuenta</th>
-                                            <th style=\"width:160px;\">Acción</th>
+                                            <th style="width:160px;">Acción</th>
                                         </tr>
                                     </thead>
-                                    <tbody id=\"usuariosBody\">
-                                        <tr><td colspan=\"2\" style=\"text-align:center; color:var(--text-muted);\">Cargando cuentas…</td></tr>
+                                    <tbody id="usuariosBody">
+                                        <tr><td colspan="2" style="text-align:center; color:var(--text-muted);">Cargando cuentas…</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -630,15 +630,15 @@
                 </div>
             </div>
 
-        </div></div><div id=\"modal-ficha\" class=\"modal-overlay\">
-        <div class=\"modal-box\">
-            <button class=\"modal-close\" id=\"btnCerrarModal\">✕</button>
-            <div id=\"modal-contenido\"></div>
+        </div></div><div id="modal-ficha" class="modal-overlay">
+        <div class="modal-box">
+            <button class="modal-close" id="btnCerrarModal">✕</button>
+            <div id="modal-contenido"></div>
         </div>
     </div>
 
-    <script src=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js\"></script>
-    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js\"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     
     <script src="app.js"></script>
 </body>
