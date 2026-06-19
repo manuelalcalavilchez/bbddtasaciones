@@ -63,8 +63,8 @@
 
 
   const initSession = (user) => {
-    $('authView').style.display = 'none';
-    $('appView').style.display = 'flex';
+    $('auth-view').style.display = 'none';
+    $('app-view').style.display = 'flex';
     $('userBadge').innerHTML = `<span class="material-symbols-outlined">account_circle</span> ${esc(user.email)} (${esc(user.role)})`;
     // Show users nav only for admin
     const navUsers = $('navUsers');
@@ -81,7 +81,7 @@
   const checkSession = () => {
     const saved = localStorage.getItem('session_user');
     if (saved) { initSession(JSON.parse(saved)); }
-    else { $('authView').style.display = 'grid'; $('appView').style.display = 'none'; }
+    else { $('auth-view').style.display = 'grid'; $('app-view').style.display = 'none'; }
   };
 
   // ===== NAVEGACION SPA =====
