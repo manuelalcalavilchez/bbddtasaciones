@@ -1,706 +1,550 @@
 (function () {
-  // ===== ESTADO CENTRALIZADO DE LA APLICACIÓN SPA =====
+  const API = 'https://n8n-postgrest-api.n9xpuu.easypanel.host';
+  const ADMIN_EMAIL = 'manuel@tecnologiaalcala.es';
+
   const state = {
-    apiBase: 'https://n8n-postgrest-api.n9xpuu.easypanel.host',
-    records: [],
-    filteredRecords: [], 
-    map: null,
-    markers: [],
-    poblacionesGps: {},
-    charts: {},
-    users: []
+    records: [], filtered: [], map: null, markers: [],
+    charts: {}, users: [], importQueue: []
   };
 
-  // ===== MAPEO DE ELEMENTOS DEL DOM =====
-  const els = {
-    authView: document.getElementById('auth-view'),
-    appView: document.getElementById('app-view'),
-    
-    loginEmail: document.getElementById('loginEmail'),
-    loginPassword: document.getElementById('loginPassword'),
-    btnLogin: document.getElementById('btnLogin'),
-    btnLogout: document.getElementById('btnLogout'),
-    loginError: document.getElementById('loginError'),
-    userBadge: document.getElementById('userBadge'),
 
-    kpiTotal: document.getElementById('kpiTotal'),
-    kpiPending: document.getElementById('kpiPending'),
-    kpiDone: document.getElementById('kpiDone'),
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+  const fmt = (v) => v ? Number(v).toLocaleString('es-ES') + ' \u20ac' : '\u2014';
 
-    btnAplicarFiltros: document.getElementById('btnAplicarFiltros'), 
-    btnBorrarFiltros: document.getElementById('btnBorrarFiltros'),
-
-    advSearch: document.getElementById('advSearch'),
-    advType: document.getElementById('advType'),
-    advMunicipio: document.getElementById('advMunicipio'),
-    advStatus: document.getElementById('advStatus'),
-    advValueRange: document.getElementById('advValueRange'),
-    advSurfaceRange: document.getElementById('advSurfaceRange'),
-    advDateFrom: document.getElementById('advDateFrom'),
-    advDateTo: document.getElementById('advDateTo'),
-    advDistanceTown: document.getElementById('advDistanceTown'),
-    mapCounter: document.getElementById('mapCounter'),
-
-    recordsBody: document.getElementById('recordsBody'),         
-    recordsBodyFull: document.getElementById('recordsBodyFull'), 
-
-    dropZone: document.getElementById('dropZone'),
-    jsonFileInput: document.getElementById('jsonFileInput'),
-    importProgress: document.getElementById('importProgress'),
-
-    userSearch: document.getElementById('userSearch'),
-    userRoleFilter: document.getElementById('userRoleFilter'),
-    usersBody: document.getElementById('usuariosBody'),          
-    usuariosMsg: document.getElementById('usuariosMsg'),
-    btnCancelarUser: document.getElementById('btnCancelarUser'),
-    
-    modalFicha: document.getElementById('modal-ficha'),
-    modalContenido: document.getElementById('modal-contenido'),
-    btnCerrarModal: document.getElementById('btnCerrarModal'),
-  };
-
-  // ===== FUNCIONES UTILIDADES Y LIMPIEZA DE CADENAS =====
-  const escapeHtml = (str) => String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  const formatEuro = (val) => Number(val || 0).toLocaleString('es-ES') + ' €';
-
-  const parseRange = (str) => {
-    if (!str) return null;
-    const parts = str.split('-').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-    if (parts.length === 1) return { min: parts[0], max: null };
-    if (parts.length >= 2) return { min: parts[0], max: parts[1] };
-    return null;
-  };
-
-  const inRange = (val, range) => {
-    if (!range) return true;
-    const n = Number(val);
-    if (isNaN(n)) return false;
-    if (range.min !== null && n < range.min) return false;
-    if (range.max !== null && n > range.max) return false;
-    return true;
-  };
-
-  const inDateRange = (dateStr, from, to) => {
-    if (!dateStr) return true;
-    const d = new Date(dateStr);
-    if (from && d < new Date(from)) return false;
-    if (to && d > new Date(to)) return false;
-    return true;
-  };
-
-  // ==========================================
-  // 🔐 CONTROL DE ACCESO (AUTENTICACIÓN)
-  // ==========================================
-  const ejecutarLogin = async () => {
-    if (!els.loginEmail || !els.loginPassword) return;
-    const email = els.loginEmail.value.trim();
-    const password = els.loginPassword.value;
-    if (els.loginError) els.loginError.textContent = '';
-
+  // ===== CONEXION BD =====
+  const checkConnection = async () => {
     try {
-      const res = await fetch(`${state.apiBase}/usuarios?email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(password)}`);
-      if (!res.ok) {
-        if (els.loginError) els.loginError.textContent = 'Error crítico de comunicación con el backend.';
-        return;
-      }
-      const userArray = await res.json();
-      if (Array.isArray(userArray) && userArray.length > 0) {
-        localStorage.setItem('session_user', JSON.stringify(userArray[0]));
-        inicializarSessionDeUsuario(userArray[0]);
-      } else {
-        if (els.loginError) els.loginError.textContent = 'Credenciales técnicas incorrectas.';
-      }
-    } catch (err) {
-      if (els.loginError) els.loginError.textContent = 'Fallo de conexión o red inalcanzable.';
-    }
+      const r = await fetch(`${API}/informes_tasacion?select=id&limit=1`, {
+        method: 'HEAD', headers: { 'Prefer': 'count=exact' }
+      });
+      const range = r.headers.get('content-range');
+      let count = 0;
+      if (range) { const t = range.split('/')[1]; if (t && t !== '*') count = Number(t); }
+      return { online: r.ok, count };
+    } catch { return { online: false, count: 0 }; }
   };
 
-  const inicializarSessionDeUsuario = (user) => {
-    if (els.userBadge) els.userBadge.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">account_circle</span> ${escapeHtml(user.email)} (${escapeHtml(user.rol || 'tasador')})`;
-    if (els.authView) els.authView.style.display = 'none';
-    if (els.appView) els.appView.style.display = 'flex';
-    
-    inicializarMapaGis();
-    cargarTasacionesDesdeBBDD();
-    cargarUsuarios();
+
+  const updateConnectionUI = async () => {
+    const { online, count } = await checkConnection();
+    // Login page
+    const loginDot = $('dbStatusLoginDot');
+    const loginText = $('dbStatusLoginText');
+    if (loginDot) loginDot.className = `db-dot ${online ? 'online' : 'offline'}`;
+    if (loginText) loginText.textContent = online ? `BD conectada (${count} informes)` : 'Sin conexi\u00f3n a BD';
+    // Sidebar
+    const dot = $('connectionDot');
+    const label = $('connectionLabel');
+    const ccount = $('connectionCount');
+    if (dot) dot.className = `db-dot ${online ? 'online' : 'offline'}`;
+    if (label) label.textContent = online ? 'BD Conectada' : 'Sin conexi\u00f3n';
+    if (ccount) ccount.textContent = online ? `${count} informes` : '';
+    const ind = $('connectionIndicator');
+    if (ind) ind.className = `connection-indicator ${online ? 'online' : 'offline'}`;
   };
 
-  const verificarPersistenciaSesion = () => {
-    const sesionGuardada = localStorage.getItem('session_user');
-    if (sesionGuardada) {
-      inicializarSessionDeUsuario(JSON.parse(sesionGuardada));
-    } else {
-      if (els.authView) els.authView.style.display = 'grid';
-      if (els.appView) els.appView.style.display = 'none';
-    }
+  // ===== LOGIN =====
+  const login = async () => {
+    const email = $('loginEmail').value.trim();
+    const pwd = $('loginPassword').value;
+    const err = $('loginError');
+    err.textContent = '';
+    try {
+      const r = await fetch(`${API}/usuarios?email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(pwd)}`);
+      const data = await r.json();
+      if (data.length > 0) {
+        localStorage.setItem('session_user', JSON.stringify(data[0]));
+        initSession(data[0]);
+      } else { err.textContent = 'Credenciales incorrectas.'; }
+    } catch { err.textContent = 'Error de conexi\u00f3n con el servidor.'; }
   };
 
-  const ejecutarLogout = () => {
-    localStorage.removeItem('session_user');
-    location.reload();
+
+  const initSession = (user) => {
+    $('authView').style.display = 'none';
+    $('appView').style.display = 'flex';
+    $('userBadge').innerHTML = `<span class="material-symbols-outlined">account_circle</span> ${esc(user.email)} (${esc(user.role)})`;
+    // Show users nav only for admin
+    const navUsers = $('navUsers');
+    if (navUsers) navUsers.style.display = (user.email === ADMIN_EMAIL || user.role === 'administrador') ? 'flex' : 'none';
+    initMap();
+    loadInformes();
+    loadUsuarios();
+    updateConnectionUI();
+    setInterval(updateConnectionUI, 20000);
   };
 
-  const inicializarNavegacionSPA = () => {
-    const links = document.querySelectorAll('.nav a[data-target]');
-    const sections = document.querySelectorAll('.view-section');
+  const logout = () => { localStorage.removeItem('session_user'); location.reload(); };
 
-    links.forEach(link => {
-      link.addEventListener('click', (e) => {
+  const checkSession = () => {
+    const saved = localStorage.getItem('session_user');
+    if (saved) { initSession(JSON.parse(saved)); }
+    else { $('authView').style.display = 'grid'; $('appView').style.display = 'none'; }
+  };
+
+  // ===== NAVEGACION SPA =====
+  const initNav = () => {
+    document.querySelectorAll('.nav a[data-target]').forEach(link => {
+      link.addEventListener('click', e => {
         e.preventDefault();
-        const targetSectionId = link.getAttribute('data-target');
-
-        links.forEach(l => l.classList.remove('active'));
-        sections.forEach(s => s.classList.remove('active'));
-
+        document.querySelectorAll('.nav a').forEach(l => l.classList.remove('active'));
+        document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
         link.classList.add('active');
-        const targetSection = document.getElementById(targetSectionId);
-        if (targetSection) targetSection.classList.add('active');
-
-        if (targetSectionId === 'sec-dashboard' && state.map) {
+        const sec = $(link.getAttribute('data-target'));
+        if (sec) sec.classList.add('active');
+        if (link.getAttribute('data-target') === 'sec-dashboard' && state.map) {
           setTimeout(() => state.map.invalidateSize(), 200);
         }
       });
     });
   };
 
-  // ==========================================
-  // 🗺️ ENTORNO GEOGRÁFICO (LEAFLET GIS)
-  // ==========================================
-  const inicializarMapaGis = () => {
-    if (state.map || !document.getElementById('map')) return;
-    state.map = L.map('map').setView([36.8381, -2.4597], 10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap'
+
+  // ===== MAPA =====
+  const initMap = () => {
+    if (state.map || !$('map')) return;
+    state.map = L.map('map').setView([36.8381, -2.4597], 9);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OSM &copy; CARTO'
     }).addTo(state.map);
   };
 
-  const calcularDistanciaKm = (lat1, lon1, lat2, lon2) => {
-    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+  // ===== CARGAR INFORMES =====
+  const loadInformes = async () => {
+    try {
+      const r = await fetch(`${API}/informes_tasacion?order=fecha_creacion_registro.desc&limit=5000`);
+      if (r.ok) {
+        state.records = await r.json();
+        populateFilters();
+        state.filtered = [...state.records];
+        renderAll();
+      }
+    } catch (e) { console.error('Error cargando informes:', e); }
   };
 
-  const actualizarSelectorPoblaciones = () => {
-    if (!els.advDistanceTown) return;
-    const prev = els.advDistanceTown.value;
-    els.advDistanceTown.innerHTML = '<option value="">— Sin ordenar por Cercanía —</option>';
-    Object.keys(state.poblacionesGps).sort().forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m; opt.textContent = m;
-      els.advDistanceTown.appendChild(opt);
+  const populateFilters = () => {
+    const clases = [...new Set(state.records.map(r => r.clase_general).filter(Boolean))].sort();
+    const munis = [...new Set(state.records.map(r => r.municipio).filter(Boolean))].sort();
+    const provs = [...new Set(state.records.map(r => r.provincia).filter(Boolean))].sort();
+    const selClase = $('filtroClase'); const selMuni = $('filtroMunicipio'); const selProv = $('filtroProvincia');
+    if (selClase) { selClase.innerHTML = '<option value="">Todas</option>' + clases.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join(''); }
+    if (selMuni) { selMuni.innerHTML = '<option value="">Todos</option>' + munis.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join(''); }
+    if (selProv) { selProv.innerHTML = '<option value="">Todas</option>' + provs.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join(''); }
+  };
+
+
+  // ===== FILTRADO =====
+  const applyFilters = () => {
+    const txt = ($('filtroTexto')?.value || '').toLowerCase();
+    const clase = $('filtroClase')?.value || '';
+    const muni = $('filtroMunicipio')?.value || '';
+    const prov = $('filtroProvincia')?.value || '';
+    const vMin = parseFloat($('filtroValorMin')?.value) || 0;
+    const vMax = parseFloat($('filtroValorMax')?.value) || Infinity;
+
+    state.filtered = state.records.filter(r => {
+      if (txt && ![r.numero_informe, r.municipio, r.solicitante_nombre, r.provincia, r.paraje]
+        .some(v => String(v || '').toLowerCase().includes(txt))) return false;
+      if (clase && r.clase_general !== clase) return false;
+      if (muni && r.municipio !== muni) return false;
+      if (prov && r.provincia !== prov) return false;
+      const val = Number(r.valor_mercado_adoptado || 0);
+      if (val < vMin || val > vMax) return false;
+      return true;
     });
-    els.advDistanceTown.value = prev;
+    renderAll();
   };
 
-  const actualizarSelectorMunicipios = () => {
-    if (!els.advMunicipio) return;
-    const prev = els.advMunicipio.value;
-    els.advMunicipio.innerHTML = '<option value="">Todos los municipios</option>';
-    const munis = [...new Set(state.records.map(r => r.localidad).filter(Boolean))].sort();
-    munis.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m; opt.textContent = m;
-      els.advMunicipio.appendChild(opt);
+  const clearFilters = () => {
+    ['filtroTexto','filtroValorMin','filtroValorMax'].forEach(id => { if($(id)) $(id).value = ''; });
+    ['filtroClase','filtroMunicipio','filtroProvincia'].forEach(id => { if($(id)) $(id).value = ''; });
+    state.filtered = [...state.records];
+    renderAll();
+  };
+
+
+  // ===== RENDER TODO =====
+  const renderAll = () => {
+    renderKPIs();
+    renderMap();
+    renderTable();
+    renderCharts();
+    // Contador resultados
+    const badge = $('filtroResultados');
+    if (badge) badge.textContent = state.filtered.length < state.records.length
+      ? `${state.filtered.length} de ${state.records.length} informes`
+      : `${state.records.length} informes en total`;
+    const dbCount = $('dbResultCount');
+    if (dbCount) dbCount.textContent = `${state.filtered.length} resultados`;
+  };
+
+  const renderKPIs = () => {
+    const data = state.filtered;
+    if ($('kpiTotal')) $('kpiTotal').textContent = data.length;
+    if ($('kpiValor')) $('kpiValor').textContent = fmt(data.reduce((a, r) => a + (Number(r.valor_mercado_adoptado) || 0), 0));
+    if ($('kpiGeo')) $('kpiGeo').textContent = data.filter(r => r.latitud && r.longitud).length;
+    if ($('kpiMunicipios')) $('kpiMunicipios').textContent = new Set(data.map(r => r.municipio).filter(Boolean)).size;
+  };
+
+  const renderMap = () => {
+    if (!state.map) return;
+    state.markers.forEach(m => state.map.removeLayer(m));
+    state.markers = [];
+    let count = 0;
+    state.filtered.forEach(r => {
+      if (r.latitud && r.longitud) {
+        const lat = parseFloat(r.latitud); const lng = parseFloat(r.longitud);
+        if (!isNaN(lat) && !isNaN(lng) && lat !== 0) {
+          const marker = L.circleMarker([lat, lng], { radius: 6, color: '#3b82f6', fillColor: '#60a5fa', fillOpacity: 0.7, weight: 1.5 })
+            .addTo(state.map)
+            .bindPopup(`<b>${esc(r.numero_informe || 'INF-'+r.id)}</b><br>${esc(r.municipio||'')}<br><strong>${fmt(r.valor_mercado_adoptado)}</strong>`);
+          marker.on('click', () => showFicha(r.id));
+          state.markers.push(marker);
+          count++;
+        }
+      }
     });
-    els.advMunicipio.value = prev;
+    if ($('mapCounter')) $('mapCounter').textContent = `${count} marcadores`;
   };
 
-  // ==========================================
-  // 📊 COMPONENTES ANALÍTICOS (CHART.JS V4)
-  // ==========================================
-  const destroyCharts = () => {
+
+  const renderTable = () => {
+    const body = $('informesBody');
+    if (!body) return;
+    if (state.filtered.length === 0) {
+      body.innerHTML = '<tr><td colspan="7" class="table-empty">Ning\u00fan informe coincide con los filtros.</td></tr>';
+      return;
+    }
+    body.innerHTML = state.filtered.map(r => `
+      <tr data-id="${r.id}" class="clickable-row">
+        <td><strong>${esc(r.numero_informe || 'INF-'+r.id)}</strong></td>
+        <td>${esc(r.clase_general || '\u2014')}</td>
+        <td>${esc(r.solicitante_nombre || '\u2014')}</td>
+        <td>${esc(r.municipio || '\u2014')}</td>
+        <td>${esc(r.provincia || '\u2014')}</td>
+        <td class="val-cell">${fmt(r.valor_mercado_adoptado)}</td>
+        <td>${r.fecha_emision || (r.fecha_creacion_registro ? r.fecha_creacion_registro.slice(0,10) : '\u2014')}</td>
+      </tr>`).join('');
+    body.querySelectorAll('tr[data-id]').forEach(tr => {
+      tr.addEventListener('click', () => showFicha(tr.getAttribute('data-id')));
+    });
+  };
+
+  // ===== GRAFICAS =====
+  const renderCharts = () => {
     Object.values(state.charts).forEach(c => c.destroy());
     state.charts = {};
-  };
-
-  const renderCharts = () => {
-    destroyCharts();
-    const ctxType = document.getElementById('chartType')?.getContext('2d');
-    const ctxStatus = document.getElementById('chartStatus')?.getContext('2d');
-    const ctxMuni = document.getElementById('chartMunicipios')?.getContext('2d');
-    const ctxScatter = document.getElementById('chartValorSuperficie')?.getContext('2d');
-    
-    const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
-    const dataSrc = state.filteredRecords;
-
-    if (ctxType) {
+    const data = state.filtered;
+    // Municipios
+    const ctxM = $('chartMunicipios')?.getContext('2d');
+    if (ctxM) {
       const counts = {};
-      dataSrc.forEach(r => { if(r.tipo) counts[r.tipo] = (counts[r.tipo] || 0) + 1; });
-      state.charts.type = new Chart(ctxType, {
-        type: 'doughnut',
-        data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: colors, borderWidth: 0 }] },
-        options: { responsive: true, aspectRatio: 1.5, plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc' } } } }
+      data.forEach(r => { if(r.municipio) counts[r.municipio] = (counts[r.municipio]||0)+1; });
+      const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,10);
+      state.charts.muni = new Chart(ctxM, { type:'bar',
+        data:{ labels:sorted.map(s=>s[0]), datasets:[{label:'Informes',data:sorted.map(s=>s[1]),backgroundColor:'#3b82f6',borderRadius:4}] },
+        options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#94a3b8'}},y:{ticks:{color:'#94a3b8'}}} }
       });
     }
-
-    if (ctxStatus) {
+    // Clase
+    const ctxC = $('chartClase')?.getContext('2d');
+    if (ctxC) {
       const counts = {};
-      dataSrc.forEach(r => { if(r.estado) counts[r.estado] = (counts[r.estado] || 0) + 1; });
-      const statusColors = { 'Finalizado': '#22c55e', 'En proceso': '#3b82f6', 'Pendiente': '#f59e0b' };
-      state.charts.status = new Chart(ctxStatus, {
-        type: 'pie',
-        data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: Object.keys(counts).map(k => statusColors[k] || '#64748b'), borderWidth: 0 }] },
-        options: { responsive: true, aspectRatio: 1.5, plugins: { legend: { position: 'bottom', labels: { color: '#f8fafc' } } } }
-      });
-    }
-
-    if (ctxMuni) {
-      const counts = {};
-      dataSrc.forEach(r => { if (r.localidad) counts[r.localidad] = (counts[r.localidad] || 0) + 1; });
-      const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 10);
-      state.charts.municipios = new Chart(ctxMuni, {
-        type: 'bar',
-        data: { labels: sorted.map(s => s[0]), datasets: [{ label: 'Expedientes', data: sorted.map(s => s[1]), backgroundColor: '#3b82f6', borderRadius: 4 }] },
-        options: { indexAxis: 'y', responsive: true, aspectRatio: 2, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8' } } } }
-      });
-    }
-
-    if (ctxScatter) {
-      const scatterData = dataSrc
-        .filter(r => r.valor && r.superficie && !isNaN(r.valor) && !isNaN(r.superficie))
-        .map(r => ({ x: Number(r.superficie), y: Number(r.valor) }))
-        .slice(0, 200);
-
-      state.charts.valorSuperficie = new Chart(ctxScatter, {
-        type: 'scatter',
-        data: { datasets: [{ label: 'Valor (€) vs Superficie (m²)', data: scatterData, backgroundColor: 'rgba(59, 130, 246, 0.6)' }] },
-        options: { responsive: true, aspectRatio: 2, plugins: { legend: { labels: { color: '#f8fafc' } } }, scales: { x: { ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8' } } } }
+      data.forEach(r => { const k = r.clase_general||'Sin clase'; counts[k]=(counts[k]||0)+1; });
+      const colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#6366f1'];
+      state.charts.clase = new Chart(ctxC, { type:'doughnut',
+        data:{ labels:Object.keys(counts), datasets:[{data:Object.values(counts),backgroundColor:colors,borderWidth:0}] },
+        options:{ responsive:true, plugins:{legend:{position:'bottom',labels:{color:'#f8fafc'}}} }
       });
     }
   };
 
-  // ==========================================
-  // 📑 MANIPULACIÓN DE TABLAS Y APERTURA DE FICHAS
-  // ==========================================
-  const cargarTasacionesDesdeBBDD = async () => {
+
+  // ===== FICHA DETALLE (MODAL) =====
+  const showFicha = async (id) => {
+    const modal = $('modal-ficha');
+    const content = $('modal-contenido');
+    if (!modal || !content) return;
+    content.innerHTML = '<p style="text-align:center;padding:2rem;">Cargando informe completo...</p>';
+    modal.classList.add('open');
+
     try {
-      const response = await fetch(`${state.apiBase}/importacion_tasaciones?order=fecha.desc&limit=1000`);
-      if (response.ok) {
-        state.records = await response.json();
-        state.records.forEach(r => {
-          if (r.localidad && r.lote) {
-            const coords = r.lote.split(',');
-            if (coords.length === 2 && !state.poblacionesGps[r.localidad]) {
-              state.poblacionesGps[r.localidad] = { lat: parseFloat(coords[0]), lng: parseFloat(coords[1]) };
-            }
-          }
-        });
-        actualizarSelectorPoblaciones();
-        actualizarSelectorMunicipios();
-        
-        state.filteredRecords = [...state.records];
-        ejecutarFiltradoYRenderizado();
-        renderRecordsFull();
-      }
-    } catch (error) {
-      console.error("Error leyendo PostgREST:", error);
-    }
+      const [infArr, cats, regs, cult, mej, res] = await Promise.all([
+        fetch(`${API}/informes_tasacion?id=eq.${id}`).then(r=>r.json()),
+        fetch(`${API}/datos_catastrales?informe_id=eq.${id}`).then(r=>r.json()),
+        fetch(`${API}/datos_registrales?informe_id=eq.${id}`).then(r=>r.json()),
+        fetch(`${API}/cultivos_informe?informe_id=eq.${id}`).then(r=>r.json()),
+        fetch(`${API}/mejoras_informe?informe_id=eq.${id}`).then(r=>r.json()),
+        fetch(`${API}/reservas_informe?informe_id=eq.${id}`).then(r=>r.json()),
+      ]);
+      const inf = infArr[0];
+      if (!inf) { content.innerHTML = '<p>Informe no encontrado.</p>'; return; }
+
+      content.innerHTML = `
+        <h2 class="modal-title">${esc(inf.numero_informe || 'INF-'+inf.id)}</h2>
+        <div class="modal-meta">
+          <span class="badge">${esc(inf.clase_general||'')}</span>
+          <span class="badge badge-green">${esc(inf.estado_actual||'')}</span>
+          <span>${inf.fecha_emision||''}</span>
+        </div>
+        <div class="modal-valor">${fmt(inf.valor_mercado_adoptado)}</div>
+
+        <div class="modal-grid">
+          <div class="modal-section">
+            <h4>Solicitante</h4>
+            <p><strong>${esc(inf.solicitante_nombre||'\u2014')}</strong></p>
+            <p>DNI: ${esc(inf.solicitante_dni||'\u2014')}</p>
+            <p>Finalidad: ${esc(inf.finalidad||'\u2014')}</p>
+          </div>
+          <div class="modal-section">
+            <h4>Ubicaci\u00f3n</h4>
+            <p>${esc(inf.municipio||'')} (${esc(inf.provincia||'')})</p>
+            <p>Paraje: ${esc(inf.paraje||'\u2014')}</p>
+            <p>Coords: ${inf.latitud||'\u2014'}, ${inf.longitud||'\u2014'}</p>
+          </div>
+          <div class="modal-section">
+            <h4>Urbanismo</h4>
+            <p>Suelo: ${esc(inf.clasificacion_suelo||'\u2014')}</p>
+            <p>Uso: ${esc(inf.uso_predominante||'\u2014')}</p>
+            <p>Plan: ${esc(inf.planeamiento_vigente||'\u2014')}</p>
+          </div>
+          <div class="modal-section">
+            <h4>Valoraci\u00f3n</h4>
+            <p>Comparaci\u00f3n: ${fmt(inf.valor_comparacion_total)}</p>
+            <p>Rentas: ${fmt(inf.valor_actualizacion_rentas)}</p>
+            <p>Mercado: ${fmt(inf.valor_mercado)}</p>
+            <p>Hipotecario: ${fmt(inf.valor_hipotecario)}</p>
+            <p>M\u00e9todo: ${esc(inf.metodo_principal||'\u2014')}</p>
+          </div>
+        </div>
+
+        ${cats.length ? `<div class="modal-subtable"><h4>Datos Catastrales</h4><table><thead><tr><th>Ref.</th><th>Pol.</th><th>Parc.</th><th>Sup. m\u00b2</th><th>Uso</th></tr></thead><tbody>${cats.map(c=>`<tr><td>${esc(c.referencia_catastral)}</td><td>${c.poligono||''}</td><td>${c.parcela||''}</td><td>${c.superficie_catastral_m2||''}</td><td>${esc(c.uso_catastral||'')}</td></tr>`).join('')}</tbody></table></div>` : ''}
+
+        ${cult.length ? `<div class="modal-subtable"><h4>Cultivos</h4><table><thead><tr><th>Sector</th><th>Tipo</th><th>Sup. ha</th><th>Estado</th></tr></thead><tbody>${cult.map(c=>`<tr><td>${esc(c.sector||'')}</td><td>${esc(c.tipo_cultivo)}</td><td>${c.superficie_ha}</td><td>${esc(c.estado_produccion||'')}</td></tr>`).join('')}</tbody></table></div>` : ''}
+
+        ${mej.length ? `<div class="modal-subtable"><h4>Mejoras</h4><table><thead><tr><th>Tipo</th><th>Sup. m\u00b2</th><th>A\u00f1o</th><th>Vida \u00fatil</th></tr></thead><tbody>${mej.map(m=>`<tr><td>${esc(m.tipo_mejora)}</td><td>${m.superficie_m2||''}</td><td>${m.ano_instalacion_construccion||''}</td><td>${m.vida_util_restante_anos ? m.vida_util_restante_anos+' a\u00f1os' : ''}</td></tr>`).join('')}</tbody></table></div>` : ''}
+
+        ${res.length ? `<div class="modal-subtable"><h4>Reservas</h4><table><thead><tr><th>C\u00f3d.</th><th>Descripci\u00f3n</th></tr></thead><tbody>${res.map(r=>`<tr><td><span class="badge">${esc(r.codigo||'')}</span></td><td>${esc(r.descripcion)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+
+        <div class="modal-actions-bottom">
+          <button class="btn btn-danger" onclick="window._deleteFicha(${inf.id})"><span class="material-symbols-outlined">delete</span> Eliminar</button>
+        </div>
+      `;
+    } catch(e) { content.innerHTML = `<p style="color:var(--danger)">Error: ${e.message}</p>`; }
   };
 
-  const ejecutarFiltradoYRenderizado = () => {
-    if (!els.recordsBody) return;
-    state.markers.forEach(m => state.map?.removeLayer(m));
-    state.markers = [];
+  window._deleteFicha = async (id) => {
+    if (!confirm('\u00bfEliminar este informe y todos sus datos asociados?')) return;
+    try {
+      await fetch(`${API}/informes_tasacion?id=eq.${id}`, { method: 'DELETE' });
+      $('modal-ficha').classList.remove('open');
+      await loadInformes();
+    } catch(e) { alert('Error al eliminar: ' + e.message); }
+  };
 
-    const query = els.advSearch?.value?.trim().toLowerCase() || '';
-    const filterType = els.advType?.value || '';
-    const filterMunicipio = els.advMunicipio?.value || '';
-    const filterStatus = els.advStatus?.value || '';
-    const valueRange = parseRange(els.advValueRange?.value);
-    const surfaceRange = parseRange(els.advSurfaceRange?.value);
-    const dateFrom = els.advDateFrom?.value || '';
-    const dateTo = els.advDateTo?.value || '';
-    const centroReferencia = els.advDistanceTown?.value || '';
 
-    let coordenadasCentro = null;
-    if (centroReferencia && state.poblacionesGps[centroReferencia]) {
-      coordenadasCentro = state.poblacionesGps[centroReferencia];
+  // ===== IMPORTACION MASIVA JSON =====
+  const processImportFiles = async (fileList) => {
+    state.importQueue = [];
+    for (const file of fileList) {
+      if (!file.name.endsWith('.json')) continue;
+      try {
+        const raw = JSON.parse(await file.text());
+        const arr = Array.isArray(raw) ? raw : [raw];
+        state.importQueue.push(...arr);
+      } catch(e) { console.warn('Error parseando', file.name, e); }
     }
-
-    state.filteredRecords = state.records.map(r => {
-      let distancia = null;
-      if (r.lote && coordenadasCentro) {
-        const c = r.lote.split(',');
-        if (c.length === 2) distancia = calcularDistanciaKm(coordenadasCentro.lat, coordenadasCentro.lng, parseFloat(c[0]), parseFloat(c[1]));
-      }
-      return { ...r, _distancia: distancia };
-    }).filter(r => {
-      // FIX: búsqueda también por campo tasador (antes propietario)
-      const inc = !query || [r.referencia, r.tasador, r.localidad, r.tipo].some(v => String(v ?? '').toLowerCase().includes(query));
-      return inc && (!filterType || r.tipo === filterType) && 
-                 (!filterMunicipio || r.localidad === filterMunicipio) && 
-                 (!filterStatus || r.estado === filterStatus) && 
-                 inRange(r.valor, valueRange) && 
-                 inRange(r.superficie, surfaceRange) && 
-                 inDateRange(r.fecha, dateFrom, dateTo);
-    });
-
-    if (coordenadasCentro) {
-      state.filteredRecords.sort((a, b) => (a._distancia ?? Infinity) - (b._distancia ?? Infinity));
-    }
-
-    if (els.kpiTotal) els.kpiTotal.textContent = state.records.length;
-    if (els.kpiPending) els.kpiPending.textContent = state.records.filter(r => r.estado !== 'Finalizado').length;
-    if (els.kpiDone) els.kpiDone.textContent = state.records.filter(r => r.estado === 'Finalizado').length;
-    if (els.mapCounter) els.mapCounter.textContent = `${state.filteredRecords.length} marcadores activos`;
-
-    if (state.filteredRecords.length === 0) {
-      els.recordsBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:24px;">Ninguna tasación coincide con los filtros establecidos.</td></tr>`;
-      destroyCharts();
-      // FIX: también actualizar tabla Base de Datos cuando no hay resultados
-      renderRecordsFull();
+    if (state.importQueue.length === 0) {
+      $('importProgress').innerHTML = '<span style="color:var(--danger);">No se encontraron informes v\u00e1lidos.</span>';
       return;
     }
-
-    els.recordsBody.innerHTML = state.filteredRecords.map(r => {
-      const badgeClass = r.estado === 'Finalizado' ? 'finalizado' : (r.estado === 'En proceso' ? 'proceso' : 'pendiente');
-      const distTexto = r._distancia !== null ? `${r._distancia.toFixed(2)} Km` : '—';
-      const valorEuro = formatEuro(r.valor);
-
-      if (r.lote && state.map) {
-        const c = r.lote.split(',');
-        if (c.length === 2) {
-          const marker = L.marker([parseFloat(c[0]), parseFloat(c[1])]).addTo(state.map)
-            .bindPopup(`<b>Ref: ${escapeHtml(r.referencia)}</b><br>Valor: ${valorEuro}`);
-          state.markers.push(marker);
-        }
-      }
-
-      const uid = r.id || r.referencia;
-      return `<tr data-id="${escapeHtml(uid)}">
-        <td><strong>${escapeHtml(r.referencia)}</strong></td>
-        <td>${escapeHtml(r.tipo)}</td>
-        <td>${escapeHtml(r.tasador)}</td>
-        <td>${escapeHtml(r.localidad)}</td>
-        <td><span class="badge ${badgeClass}">● ${escapeHtml(r.estado)}</span></td>
-        <td style="color:var(--primary); font-weight:600;">${distTexto}</td>
-        <td><strong>${valorEuro}</strong></td>
-      </tr>`;
+    $('importPreview').style.display = 'block';
+    $('importCount').textContent = `${state.importQueue.length} informe(s) listos para importar`;
+    $('importList').innerHTML = state.importQueue.map((item, i) => {
+      const titulo = item.identificacion_informe?.numero_informe || item.numero_informe || `Registro ${i+1}`;
+      const muni = item.identificacion_y_localizacion?.municipio || item.municipio || '';
+      return `<div class="import-item"><span class="badge badge-accent">#${i+1}</span> <strong>${esc(titulo)}</strong> - ${esc(muni)}</div>`;
     }).join('');
-
-    els.recordsBody.querySelectorAll('tr[data-id]').forEach(tr => {
-      tr.addEventListener('click', () => mostrarDetalleTasacion(tr.getAttribute('data-id')));
-    });
-
-    // FIX: sincronizar tabla Base de Datos con los mismos filtros activos
-    renderRecordsFull();
-    renderCharts();
   };
 
-  // FIX: renderRecordsFull ahora usa state.filteredRecords en lugar de state.records
-  const renderRecordsFull = () => {
-    if (!els.recordsBodyFull) return;
-
-    const source = state.filteredRecords.length > 0 || state.records.length === 0
-      ? state.filteredRecords
-      : state.records;
-
-    if (source.length === 0) {
-      els.recordsBodyFull.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:24px;">Ninguna tasación coincide con los filtros establecidos.</td></tr>`;
-      return;
+  const executeImport = async () => {
+    const prog = $('importProgress');
+    prog.innerHTML = 'Importando...';
+    let ok = 0; let errors = 0;
+    for (let i = 0; i < state.importQueue.length; i++) {
+      prog.innerHTML = `Procesando ${i+1} de ${state.importQueue.length}...`;
+      try {
+        await importSingleInforme(state.importQueue[i]);
+        ok++;
+      } catch(e) { errors++; console.error('Import error:', e); }
     }
-    
-    els.recordsBodyFull.innerHTML = source.map(r => {
-      const badgeClass = r.estado === 'Finalizado' ? 'finalizado' : (r.estado === 'En proceso' ? 'proceso' : 'pendiente');
-      const uid = r.id || r.referencia;
-      return `<tr data-id="${escapeHtml(uid)}">
-        <td><strong>${escapeHtml(r.referencia)}</strong></td>
-        <td>${escapeHtml(r.tipo)}</td>
-        <td>${escapeHtml(r.tasador)}</td>
-        <td>${escapeHtml(r.localidad)}</td>
-        <td><span class="badge ${badgeClass}">● ${escapeHtml(r.estado)}</span></td>
-        <td><strong>${formatEuro(r.valor)}</strong></td>
-        <td>${escapeHtml(r.fecha ? r.fecha.slice(0,10) : '—')}</td>
-        <td><button class="btn-view-ficha" style="background:var(--primary); color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:600; font-size:12px;">Ver Ficha</button></td>
-      </tr>`;
-    }).join('');
-
-    els.recordsBodyFull.querySelectorAll('tr[data-id]').forEach(tr => {
-      tr.addEventListener('click', () => {
-        mostrarDetalleTasacion(tr.getAttribute('data-id'));
-      });
-      tr.querySelector('.btn-view-ficha')?.addEventListener('click', (e) => {
-        e.stopPropagation(); 
-        mostrarDetalleTasacion(tr.getAttribute('data-id'));
-      });
-    });
+    prog.innerHTML = `<span style="color:var(--success)">\u2713 Importaci\u00f3n completada: ${ok} \u00e9xitos, ${errors} errores.</span>`;
+    $('importPreview').style.display = 'none';
+    state.importQueue = [];
+    await loadInformes();
   };
 
-  const mostrarDetalleTasacion = (uid) => {
-    const record = state.records.find(r => String(r.id) === String(uid) || String(r.referencia) === String(uid));
-    if (!record) return;
 
-    const coords = record.lote ? record.lote.split(',') : [];
-    const lat = coords[0] ? parseFloat(coords[0]).toFixed(6) : '—';
-    const lng = coords[1] ? parseFloat(coords[1]).toFixed(6) : '—';
-
-    if (!els.modalContenido || !els.modalFicha) return;
-
-    els.modalContenido.innerHTML = `
-      <h3 style="font-size:18px; font-weight:700; margin-bottom:18px; border-bottom:1px solid var(--border); padding-bottom:10px;">Ficha Técnica de Expediente</h3>
-      <div class="modal-grid">
-        <div class="modal-field"><label>Referencia Catastral / Interna</label><div style="font-weight:600; margin-top:3px; color:var(--primary);">${escapeHtml(record.referencia)}</div></div>
-        <div class="modal-field"><label>Tipología Constructiva</label><div style="margin-top:3px;">${escapeHtml(record.tipo)}</div></div>
-        <div class="modal-field"><label>Tasador / Solicitante</label><div style="margin-top:3px;">${escapeHtml(record.tasador)}</div></div>
-        <div class="modal-field"><label>Término Municipal</label><div style="margin-top:3px;">${escapeHtml(record.localidad)}</div></div>
-        <div class="modal-field"><label>Estado Operativo</label><div style="margin-top:3px;"><span class="badge ${record.estado === 'Finalizado' ? 'finalizado' : (record.estado === 'En proceso' ? 'proceso' : 'pendiente')}">${escapeHtml(record.estado)}</span></div></div>
-        <div class="modal-field"><label>Valor Concluido (€)</label><div style="font-weight:700; color:var(--success); margin-top:3px;">${formatEuro(record.valor)}</div></div>
-        <div class="modal-field"><label>Superficie Útil Computable</label><div style="margin-top:3px; font-weight:600;">${escapeHtml(record.superficie || '—')} m²</div></div>
-        <div class="modal-field"><label>Fecha Entrada</label><div style="margin-top:3px;">${escapeHtml(record.fecha ? record.fecha.slice(0,10) : '—')}</div></div>
-        <div class="modal-field"><label>Coordenada Latitud (WGS84)</label><div style="margin-top:3px; color:var(--text-muted); font-family:monospace;">${lat}</div></div>
-        <div class="modal-field"><label>Coordenada Longitud (WGS84)</label><div style="margin-top:3px; color:var(--text-muted); font-family:monospace;">${lng}</div></div>
-        <div class="modal-field" style="grid-column: 1 / -1;"><label>Localización / Paraje / Lote Geográfico</label><div style="margin-top:3px;">${escapeHtml(record.lote || '—')}</div></div>
-        <div class="modal-field" style="grid-column: 1 / -1;"><label>Observaciones del Tasador Técnico</label><div style="margin-top:3px; font-style:italic; color:#cbd5e1; line-height:1.4;">${escapeHtml(record.observaciones || 'Sin observaciones documentadas.')}</div></div>
-      </div>
-    `;
-    els.modalFicha.classList.add('open');
-  };
-
-  // ==========================================
-  // 📥 MODULO DE IMPORTACIÓN INTELIGENTE (ADAPTADOR JSON)
-  // ==========================================
-  const procesarMultiplesArchivosJSON = async (fileList) => {
-    if (!els.importProgress) return;
-    const totalArchivos = fileList.length;
-    let exitos = 0;
-
-    els.importProgress.innerHTML = `Preparando la inyección de ${totalArchivos} archivo(s)...`;
-
-    for (let i = 0; i < totalArchivos; i++) {
-      els.importProgress.textContent = `Procesando archivo ${i + 1} de ${totalArchivos}...`;
-      const resultado = await procesarArchivoJSON(fileList[i]); 
-      if (resultado) exitos++;
-    }
-
-    if (exitos > 0) {
-      els.importProgress.innerHTML = `<span style="color:var(--success); font-weight:600;">✓ Proceso masivo terminado: ${exitos} de ${totalArchivos} archivo(s) sincronizados con éxito.</span>`;
-      await cargarTasacionesDesdeBBDD();
+  const importSingleInforme = async (json) => {
+    // Adaptar JSON completo a tabla informes_tasacion
+    const d = json;
+    const informe = {};
+    if (d.identificacion_informe) {
+      // Formato completo
+      informe.numero_informe = d.identificacion_informe.numero_informe || null;
+      informe.fecha_emision = d.identificacion_informe.fecha_emision || null;
+      informe.referencia_cliente = d.identificacion_informe.referencia_cliente || null;
+      informe.sociedad_nombre = d.identificacion_informe.sociedad_tasacion?.nombre || null;
+      informe.sociedad_cif = d.identificacion_informe.sociedad_tasacion?.cif || null;
+      informe.solicitante_nombre = d.solicitante_y_finalidad?.solicitante?.nombre || null;
+      informe.solicitante_dni = d.solicitante_y_finalidad?.solicitante?.dni || null;
+      informe.finalidad = d.solicitante_y_finalidad?.finalidad || null;
+      informe.municipio = d.identificacion_y_localizacion?.municipio || null;
+      informe.provincia = d.identificacion_y_localizacion?.provincia || null;
+      informe.paraje = d.identificacion_y_localizacion?.paraje || null;
+      informe.direccion = d.identificacion_y_localizacion?.direccion || null;
+      informe.estado_actual = d.identificacion_y_localizacion?.estado_actual || null;
+      informe.clase_general = d.identificacion_y_localizacion?.clase_general_inmueble || null;
+      const lat = parseFloat(d.identificacion_y_localizacion?.coordenadas_gps?.latitud);
+      const lng = parseFloat(d.identificacion_y_localizacion?.coordenadas_gps?.longitud);
+      if (!isNaN(lat)) informe.latitud = lat;
+      if (!isNaN(lng)) informe.longitud = lng;
+      informe.planeamiento_vigente = d.urbanismo?.planeamiento_vigente || null;
+      informe.clasificacion_suelo = d.urbanismo?.clasificacion_suelo || null;
+      informe.uso_predominante = d.urbanismo?.uso_predominante || null;
+      // Valores
+      const parseVal = (s) => { const n = parseFloat(String(s||'').replace(/[^\d.,]/g,'').replace(',','.')); return isNaN(n)?null:n; };
+      informe.valor_comparacion_total = parseVal(d.valores_tasacion?.valor_comparacion?.valor_total);
+      informe.valor_actualizacion_rentas = parseVal(d.valores_tasacion?.valor_actualizacion_rentas?.valor_actualizado);
+      informe.valor_mercado_adoptado = parseVal(d.valores_tasacion?.resumen_final?.valor_adoptado);
+      informe.valor_mercado = parseVal(d.valores_tasacion?.resumen_final?.valor_mercado);
+      informe.valor_hipotecario = parseVal(d.valores_tasacion?.resumen_final?.valor_hipotecario);
+      informe.metodo_principal = d.valores_tasacion?.resumen_final?.metodo_principal || null;
     } else {
-      els.importProgress.innerHTML = `<span style="color:var(--danger); font-weight:600;">✕ No se ha podido importar ningún archivo válido. Revisa la consola.</span>`;
+      // Formato plano
+      Object.assign(informe, d);
+    }
+    // Limpiar nulls
+    Object.keys(informe).forEach(k => { if (informe[k] === null || informe[k] === '') delete informe[k]; });
+
+    const res = await fetch(`${API}/informes_tasacion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+      body: JSON.stringify(informe)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const created = await res.json();
+    const informe_id = created[0]?.id;
+    if (!informe_id || !d.identificacion_informe) return;
+
+    // Tablas hijas
+    const refs = d.datos_catastrales?.referencias || [];
+    if (refs.length) {
+      await fetch(`${API}/datos_catastrales`, { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(refs.map(r => ({ informe_id, referencia_catastral: r.referencia_catastral||'', poligono: r.poligono||null, parcela: r.parcela||null, superficie_catastral_m2: parseFloat(r.superficie_catastral)||null, uso_catastral: r.uso||null })))
+      });
+    }
+    const cultivos = d.unidades_y_mejoras?.cultivos || [];
+    if (cultivos.length) {
+      await fetch(`${API}/cultivos_informe`, { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(cultivos.map(c => ({ informe_id, sector: c.sector||null, tipo_cultivo: c.tipo_cultivo||'Sin especificar', superficie_ha: parseFloat(c.superficie_ha)||0, estado_produccion: c.estado||null })))
+      });
+    }
+    const mejoras = (d.unidades_y_mejoras?.mejoras||[]).filter(m => m.tipo_mejora);
+    if (mejoras.length) {
+      await fetch(`${API}/mejoras_informe`, { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(mejoras.map(m => ({ informe_id, tipo_mejora: m.tipo_mejora, superficie_m2: parseFloat(m.superficie_m2)||null, ano_instalacion_construccion: parseInt(m.ano_construccion)||null, vida_util_restante_anos: parseInt(m.vida_util_restante_anos)||null })))
+      });
+    }
+    const reservas = d.reservas_y_observaciones?.reservas || [];
+    if (reservas.length) {
+      await fetch(`${API}/reservas_informe`, { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(reservas.map(r => ({ informe_id, codigo: r.codigo||null, descripcion: typeof r==='string'?r:(r.descripcion||JSON.stringify(r)) })))
+      });
     }
   };
 
-  const procesarArchivoJSON = async (file) => {
-    if (!file) return false;
+
+  // ===== USUARIOS =====
+  const loadUsuarios = async () => {
+    const body = $('usuariosBody');
+    if (!body) return;
     try {
-      const rawData = JSON.parse(await file.text());
-      const rawArray = Array.isArray(rawData) ? rawData : [rawData];
-      
-      const dataArray = rawArray.map(item => {
-        if (item.identificacion_informe && item.valores_tasacion) {
-          const refObj = item.datos_catastrales?.referencias?.[0];
-          
-          const referencia = refObj?.referencia_catastral?.trim() || "S/REF-" + Math.floor(Math.random() * 100000);
-          
-          let tipo = item.identificacion_y_localizacion?.clase_general_inmueble || "Rústico";
-          if (tipo.toLowerCase().includes("rústic")) tipo = "Rústico";
-          if (tipo.toLowerCase().includes("urban")) tipo = "Urbano";
-          
-          // FIX: campo renombrado a tasador
-          let tasador = item.solicitante_y_finalidad?.solicitante?.nombre?.trim() || 
-                        item.identificacion_informe?.tasador?.nombre?.trim() || "Desconocido";
-          
-          let localidad = item.identificacion_y_localizacion?.municipio?.trim() || 
-                          item.solicitante_y_finalidad?.solicitante?.municipio?.trim() || "Almería";
-          if (localidad === "") localidad = "Almería"; 
-
-          const estado = "Finalizado";
-          
-          let valorRaw = item.valores_tasacion?.valor_comparacion?.valor_total || "0";
-          let valorClean = valorRaw.replace(/[.\s€]/g, '').replace(',', '.');
-          let valor = parseFloat(valorClean);
-          if (isNaN(valor) || valor === 0) {
-            let valorActRaw = item.valores_tasacion?.valor_actualizacion_rentas?.valor_actualizado || "0";
-            valor = parseFloat(valorActRaw.replace(/[.\s€]/g, '').replace(',', '.')) || 0.00;
-          }
-          
-          let superficieRaw = refObj?.superficie_catastral || "0";
-          let superficie = parseFloat(superficieRaw) || 0.00;
-          
-          const lat = item.identificacion_y_localizacion?.coordenadas_gps?.latitud || "";
-          const lng = item.identificacion_y_localizacion?.coordenadas_gps?.longitud || "";
-          const lote = (lat && lng) ? `${lat.trim()},${lng.trim()}` : "36.8381,-2.4597";
-          
-          const paraje = item.identificacion_y_localizacion?.paraje || "Sin paraje";
-          const descCargas = item.datos_registrales?.fincas?.[0]?.descripcion_registral || "";
-          const observaciones = `Paraje: ${paraje}. Obs: ${descCargas}`.slice(0, 500);
-
-          return {
-            referencia, tipo, tasador, localidad, estado, valor, superficie, lote, observaciones, fecha: new Date().toISOString()
-          };
-        }
-        
-        return {
-          referencia: item.referencia || "S/REF-" + Math.floor(Math.random() * 100000),
-          tipo: item.tipo || "Rústico",
-          tasador: item.tasador || item.propietario || "Desconocido",
-          localidad: item.localidad || "Almería",
-          estado: item.estado || "Finalizado",
-          valor: parseFloat(item.valor) || 0.00,
-          superficie: parseFloat(item.superficie) || 0.00,
-          lote: item.lote || "36.8381,-2.4597",
-          observaciones: item.observaciones || "",
-          fecha: item.fecha || new Date().toISOString()
-        };
-      });
-
-      const res = await fetch(`${state.apiBase}/importacion_tasaciones`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
-        body: JSON.stringify(dataArray)
-      });
-
-      if (res.ok) {
-        return true;
-      } else {
-        const errorText = await res.text();
-        console.error("Detalle del error de PostgREST en este archivo:", errorText);
-        return false;
-      }
-    } catch (e) {
-      console.error("Fallo de parsing interno en este archivo:", e);
-      return false;
-    }
-  };
-
-  // ==========================================
-  // 👥 GESTIÓN DE OPERARIOS Y ALTAS
-  // ==========================================
-  const cargarUsuarios = async () => {
-    if (!els.usersBody) return;
-    try {
-      const response = await fetch(`${state.apiBase}/usuarios?order=email.asc`);
-      if (response.ok) {
-        state.users = await response.json();
-        renderUsuarios();
-      }
-    } catch (e) { console.error("Error al leer operarios:", e); }
+      const r = await fetch(`${API}/usuarios?order=email.asc`);
+      state.users = await r.json();
+      renderUsuarios();
+    } catch(e) { console.error(e); }
   };
 
   const renderUsuarios = () => {
-    if (!els.usersBody) return;
-    
-    const query = els.userSearch?.value?.trim().toLowerCase() || '';
-    const roleFilter = els.userRoleFilter?.value || '';
-
-    const usuariosFiltrados = state.users.filter(u => {
-      const matchEmail = !query || u.email.toLowerCase().includes(query);
-      const matchRol = !roleFilter || u.rol === roleFilter;
-      return matchEmail && matchRol;
-    });
-
-    if (usuariosFiltrados.length === 0) {
-      els.usersBody.innerHTML = `<tr><td colspan="2" style="text-align:center; color:var(--text-muted); padding:16px;">Ningún operario coincide con la búsqueda.</td></tr>`;
-      return;
-    }
-
-    els.usersBody.innerHTML = usuariosFiltrados.map(u => `
+    const body = $('usuariosBody');
+    if (!body) return;
+    if (state.users.length === 0) { body.innerHTML = '<tr><td colspan="3" class="table-empty">Sin usuarios.</td></tr>'; return; }
+    body.innerHTML = state.users.map(u => `
       <tr>
-        <td>
-          <div style="font-weight:600; color:#e2e8f0;">${escapeHtml(u.email)}</div>
-          <div style="font-size:11px; color:var(--text-muted); margin-top:2px; font-weight:500;">Rol asignado: ${escapeHtml(u.rol || 'tasador')}</div>
-        </td>
-        <td style="text-align:center;"><button class="btn-del-user" data-id="${u.id}" style="background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.2); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;">Eliminar</button></td>
-      </tr>
-    `).join('');
-
-    els.usersBody.querySelectorAll('.btn-del-user').forEach(btn => {
-      btn.addEventListener('click', () => eliminarUsuarioBBDD(btn.getAttribute('data-id')));
-    });
+        <td><strong>${esc(u.email)}</strong></td>
+        <td><span class="badge">${esc(u.role)}</span></td>
+        <td><button class="btn btn-danger btn-sm" onclick="window._delUser('${esc(u.email)}')">Eliminar</button></td>
+      </tr>`).join('');
   };
 
-  const guardarUsuarioBBDD = async (e) => {
+  const createUser = async (e) => {
     e.preventDefault();
-    const email = document.getElementById('userEmail')?.value.trim();
-    const password = document.getElementById('userPassword')?.value;
-    const rol = document.getElementById('userRole')?.value;
-
-    if (!email || !password) return;
-
+    const email = $('userEmail').value.trim();
+    const password = $('userPassword').value;
+    const role = $('userRole').value;
+    const msg = $('usuariosMsg');
+    msg.textContent = '';
+    if (!email || !password) { msg.innerHTML = '<span style="color:var(--danger)">Email y contrase\u00f1a requeridos.</span>'; return; }
     try {
-      const res = await fetch(`${state.apiBase}/usuarios`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, rol })
-      });
-      if (res.ok) {
-        document.getElementById('form-usuario')?.reset();
-        await cargarUsuarios();
-        if (els.usuariosMsg) els.usuariosMsg.innerHTML = `<span style="color:var(--success)">✓ Operario creado con éxito.</span>`;
-      } else {
-        if (els.usuariosMsg) els.usuariosMsg.innerHTML = `<span style="color:var(--danger)">✕ Error al guardar el operario.</span>`;
-      }
-    } catch (err) { console.error(err); }
+      const r = await fetch(`${API}/usuarios`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email,password,role}) });
+      if (r.ok) { msg.innerHTML = '<span style="color:var(--success)">\u2713 Usuario creado.</span>'; $('form-usuario').reset(); loadUsuarios(); }
+      else { const t = await r.text(); msg.innerHTML = `<span style="color:var(--danger)">Error: ${esc(t)}</span>`; }
+    } catch(e) { msg.innerHTML = `<span style="color:var(--danger)">Error: ${e.message}</span>`; }
   };
 
-  const eliminarUsuarioBBDD = async (id) => {
-    if (!confirm('¿Estás seguro de que deseas revocar el acceso a este operario?')) return;
-    try {
-      const res = await fetch(`${state.apiBase}/usuarios?id=eq.${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        await cargarUsuarios();
-        if (els.usuariosMsg) els.usuariosMsg.innerHTML = `<span style="color:var(--warning)">✓ Operario eliminado del sistema.</span>`;
-      }
-    } catch (err) { console.error(err); }
+  window._delUser = async (email) => {
+    const user = JSON.parse(localStorage.getItem('session_user'));
+    if (email === user?.email) { alert('No puedes eliminar tu propio usuario.'); return; }
+    if (!confirm(`\u00bfEliminar a ${email}?`)) return;
+    await fetch(`${API}/usuarios?email=eq.${encodeURIComponent(email)}`, { method:'DELETE' });
+    loadUsuarios();
   };
 
-  // ==========================================
-  // ⚙️ INICIALIZACIÓN GLOBAL DE EVENTOS
-  // ==========================================
-  const inicializarEventosGlobales = () => {
-    if (els.btnLogin) els.btnLogin.addEventListener('click', ejecutarLogin);
-    if (els.btnLogout) els.btnLogout.addEventListener('click', ejecutarLogout);
-    if (els.btnAplicarFiltros) els.btnAplicarFiltros.addEventListener('click', ejecutarFiltradoYRenderizado);
-    
-    if (els.btnBorrarFiltros) {
-      els.btnBorrarFiltros.addEventListener('click', () => {
-        document.querySelectorAll('.panel-filtros input, .panel-filtros select').forEach(i => i.value = '');
-        ejecutarFiltradoYRenderizado();
-      });
-    }
 
-    const userForm = document.getElementById('form-usuario');
-    if (userForm) userForm.addEventListener('submit', guardarUsuarioBBDD);
-    if (els.btnCancelarUser) {
-      els.btnCancelarUser.addEventListener('click', () => {
-        userForm?.reset();
-        if (els.usuariosMsg) els.usuariosMsg.textContent = '';
-      });
-    }
+  // ===== EVENTOS =====
+  const initEvents = () => {
+    $('btnLogin')?.addEventListener('click', login);
+    $('loginPassword')?.addEventListener('keydown', e => { if(e.key==='Enter') login(); });
+    $('btnLogout')?.addEventListener('click', logout);
+    $('btnFiltrar')?.addEventListener('click', applyFilters);
+    $('btnLimpiar')?.addEventListener('click', clearFilters);
+    $('btnCerrarModal')?.addEventListener('click', () => $('modal-ficha').classList.remove('open'));
+    $('modal-ficha')?.addEventListener('click', e => { if(e.target===$('modal-ficha')) $('modal-ficha').classList.remove('open'); });
 
-    if (els.userSearch) els.userSearch.addEventListener('input', renderUsuarios);
-    if (els.userRoleFilter) els.userRoleFilter.addEventListener('change', renderUsuarios);
-
-    if (els.btnCerrarModal) els.btnCerrarModal.addEventListener('click', () => els.modalFicha?.classList.remove('open'));
-    if (els.modalFicha) {
-      els.modalFicha.addEventListener('click', (e) => {
-        if (e.target === els.modalFicha) els.modalFicha.classList.remove('open');
-      });
+    // Import
+    const dz = $('dropZone'); const fi = $('jsonFileInput');
+    if (dz && fi) {
+      dz.addEventListener('click', () => fi.click());
+      dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+      dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); if(e.dataTransfer.files.length) processImportFiles(e.dataTransfer.files); });
+      fi.addEventListener('change', e => { if(e.target.files.length) processImportFiles(e.target.files); });
     }
+    $('btnConfirmImport')?.addEventListener('click', executeImport);
+    $('btnCancelImport')?.addEventListener('click', () => { $('importPreview').style.display='none'; state.importQueue=[]; });
 
-    if (els.dropZone && els.jsonFileInput) {
-      els.dropZone.addEventListener('click', () => els.jsonFileInput.click());
-      els.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropZone.classList.add('drag-over'); });
-      els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('drag-over'));
-      
-      els.dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        els.dropZone.classList.remove('drag-over');
-        if (e.dataTransfer.files.length) procesarMultiplesArchivosJSON(e.dataTransfer.files);
-      });
-      els.jsonFileInput.addEventListener('change', (e) => {
-        if (e.target.files.length) procesarMultiplesArchivosJSON(e.target.files);
-      });
-    }
+    // Usuarios
+    $('form-usuario')?.addEventListener('submit', createUser);
   };
 
+  // ===== INIT =====
   document.addEventListener('DOMContentLoaded', () => {
-    inicializarNavegacionSPA();
-    inicializarEventosGlobales();
-    verificarPersistenciaSesion();
+    initNav();
+    initEvents();
+    updateConnectionUI();
+    checkSession();
   });
 })();
