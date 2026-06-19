@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type ViewType = 'dashboard' | 'geospatial' | 'database' | 'new-appraisal' | 'detail' | 'admin';
+export type ViewType = 'dashboard' | 'geospatial' | 'database' | 'new-appraisal' | 'edit-appraisal' | 'detail' | 'admin';
 
 export type AppraisalStatus = 'Completado' | 'En Revisión' | 'Pendiente' | 'En Proceso';
 

@@ -10,18 +10,21 @@ import {
   FileText,
   Eye,
   Edit,
-  MoreVertical,
+  Trash2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  AlertTriangle
 } from 'lucide-react';
 
 interface AppraisalDbViewProps {
   appraisals: Appraisal[];
   onSelectAppraisal: (appraisal: Appraisal) => void;
   onNavigate: (view: ViewType) => void;
+  onEditAppraisal: (appraisal: Appraisal) => void;
+  onDeleteAppraisal: (id: string) => void;
 }
 
-export default function AppraisalDbView({ appraisals, onSelectAppraisal, onNavigate }: AppraisalDbViewProps) {
+export default function AppraisalDbView({ appraisals, onSelectAppraisal, onNavigate, onEditAppraisal, onDeleteAppraisal }: AppraisalDbViewProps) {
   const [selectedMunicipality, setSelectedMunicipality] = useState('Murcia');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCropTypes, setSelectedCropTypes] = useState<string[]>([
@@ -29,6 +32,7 @@ export default function AppraisalDbView({ appraisals, onSelectAppraisal, onNavig
   ]);
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Handle crop checkbox toggling
   const handleCropTypeToggle = (type: string) => {
@@ -322,31 +326,23 @@ export default function AppraisalDbView({ appraisals, onSelectAppraisal, onNavig
                         <button 
                           onClick={() => onSelectAppraisal(app)}
                           className="p-1.5 hover:bg-surface-container-high rounded text-on-surface-variant cursor-pointer"
-                          title="Inspeccionar detalles"
+                          title="Ver detalles"
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
                         <button 
-                          onClick={() => {
-                            const val = prompt(`Modificar tasación ${app.expediente} - Nuevo Importe de mercado (€):`, app.valuation.toString());
-                            if (val && !isNaN(Number(val))) {
-                              app.valuation = Number(val);
-                              alert('Valor tasado actualizado temporalmente en memoria del cliente.');
-                              setSearchQuery(prev => prev + ' '); // forces state redraw
-                              setTimeout(() => setSearchQuery(prev => prev.trim()), 50);
-                            }
-                          }}
-                          className="p-1.5 hover:bg-surface-container-high rounded text-on-surface-variant cursor-pointer"
-                          title="Editar importe"
+                          onClick={() => onEditAppraisal(app)}
+                          className="p-1.5 hover:bg-primary/20 rounded text-on-surface-variant hover:text-primary cursor-pointer transition-colors"
+                          title="Editar expediente"
                         >
                           <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button 
-                          onClick={() => alert(`Acciones adicionales: duplicar, eliminar o archivar la valoración ${app.expediente}.`)}
-                          className="p-1.5 hover:bg-surface-container-high rounded text-on-surface-variant cursor-pointer"
-                          title="Más opciones"
+                          onClick={() => setDeleteConfirmId(app.id)}
+                          className="p-1.5 hover:bg-red-900/30 rounded text-on-surface-variant hover:text-red-400 cursor-pointer transition-colors"
+                          title="Eliminar expediente"
                         >
-                          <MoreVertical className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
@@ -374,6 +370,53 @@ export default function AppraisalDbView({ appraisals, onSelectAppraisal, onNavig
         </footer>
 
       </section>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (() => {
+        const appToDelete = appraisals.find(a => a.id === deleteConfirmId);
+        if (!appToDelete) return null;
+        return (
+          <div className="fixed inset-0 bg-[#0a1128]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+            <div className="bg-surface rounded-xl border border-outline shadow-2xl w-full max-w-md p-6 space-y-5">
+              <div className="flex items-center gap-3 text-red-400">
+                <div className="p-2.5 bg-red-900/30 rounded-full">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-on-surface">Eliminar Expediente</h3>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Esta accion no se puede deshacer.</p>
+                </div>
+              </div>
+
+              <div className="bg-surface-container-high border border-outline rounded-lg p-4 text-xs space-y-1">
+                <p className="text-on-surface-variant">Se eliminara permanentemente:</p>
+                <p className="font-bold text-on-surface font-mono">{appToDelete.expediente}</p>
+                <p className="text-on-surface-variant">{appToDelete.address}, {appToDelete.municipality}</p>
+                <p className="text-on-surface-variant">Valor: <span className="font-bold text-primary">{appToDelete.valuation.toLocaleString('es-ES')} EUR</span></p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="px-4 py-2 rounded-lg border border-outline text-on-surface hover:bg-surface-container-high font-semibold text-xs cursor-pointer transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    onDeleteAppraisal(deleteConfirmId);
+                    setDeleteConfirmId(null);
+                  }}
+                  className="px-5 py-2 rounded-lg bg-red-700 text-white hover:bg-red-600 font-bold text-xs flex items-center gap-2 cursor-pointer transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Confirmar Eliminacion</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );

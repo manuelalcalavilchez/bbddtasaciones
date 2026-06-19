@@ -9,6 +9,7 @@ import AppraisalDbView from './components/AppraisalDbView';
 import NewAppraisalView from './components/NewAppraisalView';
 import AppraisalDetailView from './components/AppraisalDetailView';
 import AdminView from './components/AdminView';
+import EditAppraisalView from './components/EditAppraisalView';
 import { Database, Terminal, Copy, X, Code2 } from 'lucide-react';
 
 export default function App() {
@@ -47,6 +48,22 @@ export default function App() {
     ));
     if (selectedAppraisal && selectedAppraisal.id === id) {
       setSelectedAppraisal(prev => prev ? { ...prev, valuation: newVal } : null);
+    }
+  };
+
+  // Handle full update of an appraisal record
+  const handleUpdateAppraisal = (updated: Appraisal) => {
+    setAppraisals(prev => prev.map(item => 
+      item.id === updated.id ? updated : item
+    ));
+    setSelectedAppraisal(updated);
+  };
+
+  // Handle deletion of an appraisal record
+  const handleDeleteAppraisal = (id: string) => {
+    setAppraisals(prev => prev.filter(item => item.id !== id));
+    if (selectedAppraisal && selectedAppraisal.id === id) {
+      setSelectedAppraisal(null);
     }
   };
 
@@ -151,6 +168,11 @@ CREATE TABLE IF NOT EXISTS valuation_details (
                 setCurrentView('detail');
               }}
               onNavigate={(view) => setCurrentView(view)}
+              onEditAppraisal={(app) => {
+                setSelectedAppraisal(app);
+                setCurrentView('edit-appraisal');
+              }}
+              onDeleteAppraisal={handleDeleteAppraisal}
             />
           )}
 
@@ -165,6 +187,17 @@ CREATE TABLE IF NOT EXISTS valuation_details (
             <AppraisalDetailView 
               appraisal={selectedAppraisal}
               onUpdateValuation={handleUpdateValuation}
+              onNavigate={(view) => setCurrentView(view)}
+              onEditAppraisal={() => setCurrentView('edit-appraisal')}
+              onDeleteAppraisal={handleDeleteAppraisal}
+            />
+          )}
+
+          {currentView === 'edit-appraisal' && (
+            <EditAppraisalView
+              appraisal={selectedAppraisal}
+              onUpdateAppraisal={handleUpdateAppraisal}
+              onDeleteAppraisal={handleDeleteAppraisal}
               onNavigate={(view) => setCurrentView(view)}
             />
           )}

@@ -4,6 +4,7 @@ import {
   Building2, 
   MapPin, 
   Edit, 
+  Trash2,
   FileText, 
   ChevronRight, 
   ChevronDown, 
@@ -13,22 +14,26 @@ import {
   SquareDot, 
   ExternalLink,
   ChevronUp,
-  MapPinned
+  MapPinned,
+  AlertTriangle
 } from 'lucide-react';
 
 interface AppraisalDetailViewProps {
   appraisal: Appraisal | null;
   onNavigate: (view: ViewType) => void;
   onUpdateValuation?: (id: string, newVal: number) => void;
+  onEditAppraisal?: () => void;
+  onDeleteAppraisal?: (id: string) => void;
 }
 
-export default function AppraisalDetailView({ appraisal, onNavigate, onUpdateValuation }: AppraisalDetailViewProps) {
+export default function AppraisalDetailView({ appraisal, onNavigate, onUpdateValuation, onEditAppraisal, onDeleteAppraisal }: AppraisalDetailViewProps) {
   // Collapsible accordions state
   const [accordions, setAccordions] = useState({
     titular: true,
     tecnico: true,
     valoracion: true,
   });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const toggleAccordion = (sec: 'titular' | 'tecnico' | 'valoracion') => {
     setAccordions(prev => ({ ...prev, [sec]: !prev[sec] }));
@@ -68,19 +73,6 @@ export default function AppraisalDetailView({ appraisal, onNavigate, onUpdateVal
       { status: "VALORACIÓN FINALIZADA", date: "Ayer, 16:30 PM", details: "" },
       { status: "INSPECCIÓN COMPLETADA", date: "12 Oct 2023, 11:20 AM", details: "" }
     ]
-  };
-
-  const handleEditValuation = () => {
-    const newVal = prompt(`Modificar importe tasado para ${activeAppraisal.expediente} (€):`, activeAppraisal.valuation.toString());
-    if (newVal && !isNaN(Number(newVal))) {
-      if (onUpdateValuation) {
-        onUpdateValuation(activeAppraisal.id, Number(newVal));
-        alert('Tasación de mercado modificada con éxito.');
-      } else {
-        activeAppraisal.valuation = Number(newVal);
-        alert('Valor de mercado modificado temporalmente.');
-      }
-    }
   };
 
   return (
@@ -133,11 +125,18 @@ export default function AppraisalDetailView({ appraisal, onNavigate, onUpdateVal
 
           <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
             <button 
-              onClick={handleEditValuation}
+              onClick={() => onEditAppraisal && onEditAppraisal()}
               className="px-4 py-2 bg-surface-container-high border border-outline hover:bg-surface-container-highest text-on-surface rounded-lg text-xs font-bold font-sans flex items-center gap-2 cursor-pointer transition-all"
             >
               <Edit className="w-4 h-4 text-primary" />
               <span>Editar Datos</span>
+            </button>
+            <button 
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-4 py-2 bg-red-900/20 border border-red-700/40 text-red-400 hover:bg-red-900/40 rounded-lg text-xs font-bold font-sans flex items-center gap-2 cursor-pointer transition-all"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Eliminar</span>
             </button>
             <button 
               onClick={() => alert(`Generando certificado oficial de tasación catastral (PDF) para el expediente ${activeAppraisal.expediente}...`)}
@@ -397,6 +396,52 @@ export default function AppraisalDetailView({ appraisal, onNavigate, onUpdateVal
         </div>
 
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-[#0a1128]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-surface rounded-xl border border-outline shadow-2xl w-full max-w-md p-6 space-y-5">
+            <div className="flex items-center gap-3 text-red-400">
+              <div className="p-2.5 bg-red-900/30 rounded-full">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-on-surface">Eliminar Expediente</h3>
+                <p className="text-xs text-on-surface-variant mt-0.5">Esta accion no se puede deshacer.</p>
+              </div>
+            </div>
+
+            <div className="bg-surface-container-high border border-outline rounded-lg p-4 text-xs space-y-1">
+              <p className="text-on-surface-variant">Se eliminara permanentemente:</p>
+              <p className="font-bold text-on-surface font-mono">{activeAppraisal.expediente}</p>
+              <p className="text-on-surface-variant">{activeAppraisal.address}, {activeAppraisal.municipality}</p>
+              <p className="text-on-surface-variant">Valor: <span className="font-bold text-primary">{activeAppraisal.valuation.toLocaleString('es-ES')} EUR</span></p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 rounded-lg border border-outline text-on-surface hover:bg-surface-container-high font-semibold text-xs cursor-pointer transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  if (onDeleteAppraisal) {
+                    onDeleteAppraisal(activeAppraisal.id);
+                  }
+                  setShowDeleteConfirm(false);
+                  onNavigate('database');
+                }}
+                className="px-5 py-2 rounded-lg bg-red-700 text-white hover:bg-red-600 font-bold text-xs flex items-center gap-2 cursor-pointer transition-all"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Confirmar Eliminacion</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
