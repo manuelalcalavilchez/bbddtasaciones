@@ -329,7 +329,8 @@
       }
       return { ...r, _distancia: distancia };
     }).filter(r => {
-      const inc = !query || [r.referencia, r.propietario, r.localidad, r.tipo].some(v => String(v ?? '').toLowerCase().includes(query));
+      // FIX: búsqueda también por campo tasador (antes propietario)
+      const inc = !query || [r.referencia, r.tasador, r.localidad, r.tipo].some(v => String(v ?? '').toLowerCase().includes(query));
       return inc && (!filterType || r.tipo === filterType) && 
                  (!filterMunicipio || r.localidad === filterMunicipio) && 
                  (!filterStatus || r.estado === filterStatus) && 
@@ -350,6 +351,8 @@
     if (state.filteredRecords.length === 0) {
       els.recordsBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:24px;">Ninguna tasación coincide con los filtros establecidos.</td></tr>`;
       destroyCharts();
+      // FIX: también actualizar tabla Base de Datos cuando no hay resultados
+      renderRecordsFull();
       return;
     }
 
@@ -371,7 +374,7 @@
       return `<tr data-id="${escapeHtml(uid)}">
         <td><strong>${escapeHtml(r.referencia)}</strong></td>
         <td>${escapeHtml(r.tipo)}</td>
-        <td>${escapeHtml(r.propietario)}</td>
+        <td>${escapeHtml(r.tasador)}</td>
         <td>${escapeHtml(r.localidad)}</td>
         <td><span class="badge ${badgeClass}">● ${escapeHtml(r.estado)}</span></td>
         <td style="color:var(--primary); font-weight:600;">${distTexto}</td>
@@ -383,19 +386,31 @@
       tr.addEventListener('click', () => mostrarDetalleTasacion(tr.getAttribute('data-id')));
     });
 
+    // FIX: sincronizar tabla Base de Datos con los mismos filtros activos
+    renderRecordsFull();
     renderCharts();
   };
 
+  // FIX: renderRecordsFull ahora usa state.filteredRecords en lugar de state.records
   const renderRecordsFull = () => {
     if (!els.recordsBodyFull) return;
+
+    const source = state.filteredRecords.length > 0 || state.records.length === 0
+      ? state.filteredRecords
+      : state.records;
+
+    if (source.length === 0) {
+      els.recordsBodyFull.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:24px;">Ninguna tasación coincide con los filtros establecidos.</td></tr>`;
+      return;
+    }
     
-    els.recordsBodyFull.innerHTML = state.records.map(r => {
+    els.recordsBodyFull.innerHTML = source.map(r => {
       const badgeClass = r.estado === 'Finalizado' ? 'finalizado' : (r.estado === 'En proceso' ? 'proceso' : 'pendiente');
       const uid = r.id || r.referencia;
       return `<tr data-id="${escapeHtml(uid)}">
         <td><strong>${escapeHtml(r.referencia)}</strong></td>
         <td>${escapeHtml(r.tipo)}</td>
-        <td>${escapeHtml(r.propietario)}</td>
+        <td>${escapeHtml(r.tasador)}</td>
         <td>${escapeHtml(r.localidad)}</td>
         <td><span class="badge ${badgeClass}">● ${escapeHtml(r.estado)}</span></td>
         <td><strong>${formatEuro(r.valor)}</strong></td>
@@ -430,7 +445,7 @@
       <div class="modal-grid">
         <div class="modal-field"><label>Referencia Catastral / Interna</label><div style="font-weight:600; margin-top:3px; color:var(--primary);">${escapeHtml(record.referencia)}</div></div>
         <div class="modal-field"><label>Tipología Constructiva</label><div style="margin-top:3px;">${escapeHtml(record.tipo)}</div></div>
-        <div class="modal-field"><label>Propietario / Solicitante</label><div style="margin-top:3px;">${escapeHtml(record.propietario)}</div></div>
+        <div class="modal-field"><label>Tasador / Solicitante</label><div style="margin-top:3px;">${escapeHtml(record.tasador)}</div></div>
         <div class="modal-field"><label>Término Municipal</label><div style="margin-top:3px;">${escapeHtml(record.localidad)}</div></div>
         <div class="modal-field"><label>Estado Operativo</label><div style="margin-top:3px;"><span class="badge ${record.estado === 'Finalizado' ? 'finalizado' : (record.estado === 'En proceso' ? 'proceso' : 'pendiente')}">${escapeHtml(record.estado)}</span></div></div>
         <div class="modal-field"><label>Valor Concluido (€)</label><div style="font-weight:700; color:var(--success); margin-top:3px;">${formatEuro(record.valor)}</div></div>
@@ -485,8 +500,9 @@
           if (tipo.toLowerCase().includes("rústic")) tipo = "Rústico";
           if (tipo.toLowerCase().includes("urban")) tipo = "Urbano";
           
-          let propietario = item.solicitante_y_finalidad?.solicitante?.nombre?.trim() || 
-                            item.identificacion_informe?.tasador?.nombre?.trim() || "Desconocido";
+          // FIX: campo renombrado a tasador
+          let tasador = item.solicitante_y_finalidad?.solicitante?.nombre?.trim() || 
+                        item.identificacion_informe?.tasador?.nombre?.trim() || "Desconocido";
           
           let localidad = item.identificacion_y_localizacion?.municipio?.trim() || 
                           item.solicitante_y_finalidad?.solicitante?.municipio?.trim() || "Almería";
@@ -514,14 +530,14 @@
           const observaciones = `Paraje: ${paraje}. Obs: ${descCargas}`.slice(0, 500);
 
           return {
-            referencia, tipo, propietario, localidad, estado, valor, superficie, lote, observaciones, fecha: new Date().toISOString()
+            referencia, tipo, tasador, localidad, estado, valor, superficie, lote, observaciones, fecha: new Date().toISOString()
           };
         }
         
         return {
           referencia: item.referencia || "S/REF-" + Math.floor(Math.random() * 100000),
           tipo: item.tipo || "Rústico",
-          propietario: item.propietario || "Desconocido",
+          tasador: item.tasador || item.propietario || "Desconocido",
           localidad: item.localidad || "Almería",
           estado: item.estado || "Finalizado",
           valor: parseFloat(item.valor) || 0.00,
