@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GEO-VALUATION | Panel de Tasaciones</title>
+  <title>Tecnología Alcalá | Tasaciones & Peritajes</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
@@ -344,25 +344,94 @@
       .sidebar { width: 100%; }
       .main { flex-direction: column; }
     }
+
+    /* LOGIN */
+    .login-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .login-box {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 40px 32px;
+      width: 100%; max-width: 380px;
+      text-align: center;
+    }
+    .login-logo {
+      width: 48px; height: 48px; margin: 0 auto 16px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      display: grid; place-items: center;
+      font-size: 16px; font-weight: 800; color: #fff;
+    }
+    .login-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .login-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 24px; }
+    .login-field { text-align: left; margin-bottom: 14px; }
+    .login-field label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; font-weight: 600; }
+    .login-field input {
+      width: 100%; padding: 10px 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--text); font-size: 14px; outline: none;
+    }
+    .login-field input:focus { border-color: var(--accent); }
+    .login-error {
+      background: rgba(251,113,133,0.1); border: 1px solid rgba(251,113,133,0.3);
+      color: var(--bad); padding: 8px 12px; border-radius: 8px;
+      font-size: 12px; margin-bottom: 12px; text-align: left;
+    }
+    .login-btn {
+      width: 100%; padding: 12px; border: none; border-radius: 8px;
+      background: var(--accent); color: #000; font-weight: 700;
+      font-size: 14px; cursor: pointer; margin-top: 8px;
+    }
+    .login-btn:hover { background: #93c5fd; }
+    .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .login-security { font-size: 10px; color: var(--muted); margin-top: 16px; }
   </style>
 </head>
 <body>
 
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">TA</div>
+    <h2 class="login-title">Tecnología Alcalá</h2>
+    <p class="login-subtitle">Tasaciones & Peritajes — Acceso al Sistema</p>
+    <form id="loginForm" autocomplete="off">
+      <div class="login-field">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" placeholder="usuario@empresa.es" required autocomplete="username" />
+      </div>
+      <div class="login-field">
+        <label for="loginPass">Contraseña</label>
+        <input type="password" id="loginPass" placeholder="••••••••" required autocomplete="current-password" />
+      </div>
+      <div id="loginError" class="login-error" style="display:none;"></div>
+      <button type="submit" id="loginBtn" class="login-btn">Iniciar Sesión</button>
+    </form>
+    <p class="login-security">Máximo 5 intentos. Bloqueo temporal de 60s por seguridad.</p>
+  </div>
+</div>
+
 <!-- TOPBAR -->
-<header class="topbar">
+<header class="topbar" id="appTopbar" style="display:none;">
   <div class="brand">
-    <div class="logo">GV</div>
-    <span>GEO-VALUATION</span>
+    <div class="logo">TA</div>
+    <span>Tecnología Alcalá</span>
   </div>
   <nav class="nav-tabs">
     <button class="nav-tab active" data-view="dashboard">Dashboard</button>
+    <button class="nav-tab" data-view="crud">Base de Datos</button>
     <button class="nav-tab" data-view="import">Importar JSON</button>
+    <button class="nav-tab" data-view="usuarios">Usuarios</button>
   </nav>
-  <div class="user-info" id="userInfo">Cargando...</div>
+  <div class="user-info"><span id="userInfo">Cargando...</span> <button id="logoutBtn" onclick="document.dispatchEvent(new Event('app-logout'))" style="margin-left:8px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);cursor:pointer;font-size:11px;">Salir</button></div>
 </header>
 
 <!-- MAIN -->
-<div class="main">
+<div class="main" id="appMain" style="display:none;">
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
@@ -427,6 +496,58 @@
         <input type="file" id="fileInput" accept=".json" style="display:none;">
       </div>
       <div class="import-log" id="importLog">Esperando archivo...</div>
+    </div>
+
+    <!-- CRUD VIEW -->
+    <div class="import-panel" id="crudView">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2>Base de Datos — Expedientes</h2>
+        <button id="btnNuevaFicha" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:#000;font-weight:700;font-size:13px;cursor:pointer;">+ Nueva Ficha</button>
+      </div>
+      <div class="table-view active" id="crudTable" style="display:block;overflow:auto;max-height:calc(100vh - 200px);"></div>
+    </div>
+
+    <!-- USUARIOS VIEW -->
+    <div class="import-panel" id="usuariosView">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2>Gestión de Usuarios</h2>
+        <button id="btnNuevoUsuario" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:#000;font-weight:700;font-size:13px;cursor:pointer;">+ Nuevo Usuario</button>
+      </div>
+      <div id="usuariosTable" style="overflow:auto;max-height:calc(100vh - 200px);"></div>
+    </div>
+
+    <!-- MODAL EDICION FICHA -->
+    <div id="fichaModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.7);overflow-y:auto;">
+      <div style="max-width:600px;margin:40px auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:24px;">
+        <h3 id="fichaModalTitle" style="margin-bottom:16px;">Editar Ficha</h3>
+        <form id="fichaForm">
+          <div id="fichaFields" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
+          <div style="display:flex;gap:12px;margin-top:20px;justify-content:flex-end;">
+            <button type="button" id="fichaCancel" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);cursor:pointer;">Cancelar</button>
+            <button type="button" id="fichaDelete" style="padding:8px 16px;border-radius:8px;border:none;background:var(--bad);color:#fff;font-weight:700;cursor:pointer;display:none;">Eliminar</button>
+            <button type="submit" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:#000;font-weight:700;cursor:pointer;">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL EDICION USUARIO -->
+    <div id="userModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.7);overflow-y:auto;">
+      <div style="max-width:400px;margin:80px auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:24px;">
+        <h3 id="userModalTitle" style="margin-bottom:16px;">Editar Usuario</h3>
+        <form id="userForm">
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="login-field"><label>Email</label><input type="email" id="uf_email" required /></div>
+            <div class="login-field"><label>Contraseña</label><input type="text" id="uf_password" placeholder="Dejar vacío = no cambiar" /></div>
+            <div class="login-field"><label>Rol (admin/editor/viewer)</label><input type="text" id="uf_role" value="viewer" required /></div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:20px;justify-content:flex-end;">
+            <button type="button" id="userCancel" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--text);cursor:pointer;">Cancelar</button>
+            <button type="button" id="userDelete" style="padding:8px 16px;border-radius:8px;border:none;background:var(--bad);color:#fff;font-weight:700;cursor:pointer;display:none;">Eliminar</button>
+            <button type="submit" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:#000;font-weight:700;cursor:pointer;">Guardar</button>
+          </div>
+        </form>
+      </div>
     </div>
 
   </div>

@@ -1,4 +1,4 @@
--- Schema de Base de Datos para GEO-VALUATION (Panel de Tasaciones)
+-- Schema de Base de Datos para Tecnología Alcalá (Panel de Tasaciones)
 -- Compatible con PostgreSQL + PostgREST
 -- Actualizado: 2026-06-19
 

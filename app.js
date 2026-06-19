@@ -1,5 +1,5 @@
 /**
- * GEO-VALUATION — app.js
+ * Tecnología Alcalá — app.js
  * Dashboard de tasaciones con mapa Leaflet + importación JSON
  * API: PostgREST en https://n8n-postgrest-api.n9xpuu.easypanel.host
  */
@@ -21,6 +21,7 @@
     expedientes: [],
     selectedId: null,
     view: 'dashboard',
+    currentUser: null,
   };
 
   // ============================================================
@@ -72,6 +73,22 @@
 
   async function apiPatch(table, id, body) {
     const res = await fetch(`${API_BASE}/${table}?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+  }
+
+  async function apiDelete(table, filter) {
+    const res = await fetch(`${API_BASE}/${table}?${filter}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+  }
+
+  async function apiPatchByFilter(table, filter, body) {
+    const res = await fetch(`${API_BASE}/${table}?${filter}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -289,12 +306,19 @@
       );
     }
 
+    // Action buttons
+    const actionsHtml = (typeof exp.id === 'number') ? `
+      <div style="grid-column:1/-1;display:flex;gap:8px;margin-top:8px;">
+        <button onclick="window._editFicha(${exp.id})" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--accent);cursor:pointer;font-size:12px;font-weight:600;">Editar</button>
+        <button onclick="window._deleteFicha(${exp.id},'${(exp.referencia||'').replace(/'/g,'')}')" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--bad);cursor:pointer;font-size:12px;font-weight:600;">Eliminar</button>
+      </div>` : '';
+
     els.detailGrid.innerHTML = fields.map(f => `
       <div class="detail-field">
         <div class="label">${f.label}</div>
         <div class="value ${!f.value || f.value === '—' ? 'empty' : ''}">${f.value || '—'}</div>
       </div>
-    `).join('');
+    `).join('') + actionsHtml;
   }
 
   // ============================================================
@@ -593,16 +617,25 @@
         tab.classList.add('active');
         state.view = tab.dataset.view;
 
+        // Hide all views
+        els.dashboardView.style.display = 'none';
+        els.importView.classList.remove('active');
+        document.getElementById('crudView').classList.remove('active');
+        document.getElementById('usuariosView').classList.remove('active');
+
         if (state.view === 'dashboard') {
           els.dashboardView.style.display = 'flex';
           els.dashboardView.style.flexDirection = 'column';
           els.dashboardView.style.flex = '1';
-          els.importView.classList.remove('active');
-          // Redimensionar mapa
           setTimeout(() => state.map?.invalidateSize(), 100);
         } else if (state.view === 'import') {
-          els.dashboardView.style.display = 'none';
           els.importView.classList.add('active');
+        } else if (state.view === 'crud') {
+          document.getElementById('crudView').classList.add('active');
+          loadCrudTable();
+        } else if (state.view === 'usuarios') {
+          document.getElementById('usuariosView').classList.add('active');
+          loadUsuariosTable();
         }
       });
     });
@@ -618,15 +651,348 @@
   }
 
   // ============================================================
+  // CRUD — Base de Datos de Fichas (importacion_tasaciones)
+  // ============================================================
+  const CRUD_FIELDS = [
+    { key: 'referencia', label: 'Referencia', required: true },
+    { key: 'tipo', label: 'Tipo' },
+    { key: 'propietario', label: 'Propietario' },
+    { key: 'lote', label: 'Lote' },
+    { key: 'localidad', label: 'Localidad' },
+    { key: 'estado', label: 'Estado' },
+    { key: 'fecha', label: 'Fecha', type: 'date' },
+    { key: 'valor', label: 'Valor (€)', type: 'number' },
+    { key: 'latitud', label: 'Latitud', type: 'number' },
+    { key: 'longitud', label: 'Longitud', type: 'number' },
+  ];
+
+  let crudEditingId = null;
+
+  async function loadCrudTable() {
+    const container = document.getElementById('crudTable');
+    try {
+      const data = await apiGet('importacion_tasaciones', { order: 'id.desc' });
+      if (!data.length) {
+        container.innerHTML = '<p style="color:var(--muted);padding:12px;">No hay fichas en la base de datos.</p>';
+        return;
+      }
+      container.innerHTML = `
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Referencia</th><th>Tipo</th><th>Propietario</th><th>Localidad</th><th>Estado</th><th>Valor</th><th>Acciones</th>
+          </tr></thead>
+          <tbody>${data.map(r => `
+            <tr>
+              <td>${r.id}</td>
+              <td style="color:var(--accent);font-family:monospace;">${r.referencia || '—'}</td>
+              <td>${r.tipo || '—'}</td>
+              <td>${r.propietario || '—'}</td>
+              <td>${r.localidad || '—'}</td>
+              <td><span class="expediente-status status-${(r.estado||'Pendiente').replace(/\s/g,'-')}">${r.estado||'Pendiente'}</span></td>
+              <td style="color:var(--good);">${formatMoney(r.valor)}</td>
+              <td>
+                <button onclick="window._editFicha(${r.id})" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--accent);cursor:pointer;font-size:11px;margin-right:4px;">Editar</button>
+                <button onclick="window._deleteFicha(${r.id},'${(r.referencia||'').replace(/'/g,'')}')" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--bad);cursor:pointer;font-size:11px;">Borrar</button>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+    } catch (err) {
+      container.innerHTML = `<p style="color:var(--bad);padding:12px;">Error: ${err.message}</p>`;
+    }
+  }
+
+  function openFichaModal(data = null) {
+    crudEditingId = data ? data.id : null;
+    document.getElementById('fichaModalTitle').textContent = data ? `Editar Ficha #${data.id}` : 'Nueva Ficha';
+    document.getElementById('fichaDelete').style.display = data ? '' : 'none';
+
+    const container = document.getElementById('fichaFields');
+    container.innerHTML = CRUD_FIELDS.map(f => `
+      <div class="login-field">
+        <label>${f.label}${f.required ? ' *' : ''}</label>
+        <input type="${f.type || 'text'}" name="${f.key}" value="${data ? (data[f.key] || '') : ''}" ${f.required ? 'required' : ''} style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;" />
+      </div>
+    `).join('');
+
+    document.getElementById('fichaModal').style.display = '';
+  }
+
+  function closeFichaModal() {
+    document.getElementById('fichaModal').style.display = 'none';
+    crudEditingId = null;
+  }
+
+  async function saveFicha(e) {
+    e.preventDefault();
+    const form = document.getElementById('fichaForm');
+    const body = {};
+    CRUD_FIELDS.forEach(f => {
+      const val = form.querySelector(`[name="${f.key}"]`).value.trim();
+      if (val !== '') {
+        body[f.key] = f.type === 'number' ? parseFloat(val) : val;
+      }
+    });
+
+    if (!body.referencia) { alert('La referencia es obligatoria.'); return; }
+
+    try {
+      if (crudEditingId) {
+        await apiPatch('importacion_tasaciones', crudEditingId, body);
+      } else {
+        await apiPost('importacion_tasaciones', body);
+      }
+      closeFichaModal();
+      loadCrudTable();
+      loadExpedientes();
+    } catch (err) {
+      alert('Error al guardar: ' + err.message);
+    }
+  }
+
+  async function deleteFicha(id, ref) {
+    if (!confirm(`¿Eliminar la ficha "${ref}" (ID: ${id})? Esta acción no se puede deshacer.`)) return;
+    try {
+      await apiDelete('importacion_tasaciones', `id=eq.${id}`);
+      closeFichaModal();
+      loadCrudTable();
+      loadExpedientes();
+    } catch (err) {
+      alert('Error al eliminar: ' + err.message);
+    }
+  }
+
+  // Expose for inline onclick
+  window._editFicha = async function(id) {
+    try {
+      const data = await apiGet('importacion_tasaciones', { id: `eq.${id}` });
+      if (data.length) openFichaModal(data[0]);
+    } catch (err) { alert('Error: ' + err.message); }
+  };
+  window._deleteFicha = deleteFicha;
+
+  function initCrud() {
+    document.getElementById('btnNuevaFicha').addEventListener('click', () => openFichaModal());
+    document.getElementById('fichaCancel').addEventListener('click', closeFichaModal);
+    document.getElementById('fichaForm').addEventListener('submit', saveFicha);
+    document.getElementById('fichaDelete').addEventListener('click', () => {
+      if (crudEditingId) deleteFicha(crudEditingId, '');
+    });
+  }
+
+  // ============================================================
+  // USUARIOS — Gestión completa
+  // ============================================================
+  let editingUserEmail = null;
+
+  async function loadUsuariosTable() {
+    const container = document.getElementById('usuariosTable');
+    try {
+      const data = await apiGet('usuarios');
+      container.innerHTML = `
+        <table>
+          <thead><tr><th>Email</th><th>Rol</th><th>Acciones</th></tr></thead>
+          <tbody>${data.map(u => `
+            <tr>
+              <td style="font-family:monospace;">${u.email}</td>
+              <td><span style="padding:2px 8px;border-radius:4px;background:${u.role==='admin'?'rgba(96,165,250,0.15)':u.role==='editor'?'rgba(52,211,153,0.15)':'rgba(251,191,36,0.15)'};color:${u.role==='admin'?'var(--accent)':u.role==='editor'?'var(--good)':'var(--warn)'};font-size:11px;font-weight:600;">${u.role}</span></td>
+              <td>
+                <button onclick="window._editUser('${u.email.replace(/'/g,'\\\'')}')" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--accent);cursor:pointer;font-size:11px;margin-right:4px;">Editar</button>
+                <button onclick="window._deleteUser('${u.email.replace(/'/g,'\\\'')}')" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--bad);cursor:pointer;font-size:11px;">Borrar</button>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+    } catch (err) {
+      container.innerHTML = `<p style="color:var(--bad);padding:12px;">Error: ${err.message}</p>`;
+    }
+  }
+
+  function openUserModal(data = null) {
+    editingUserEmail = data ? data.email : null;
+    document.getElementById('userModalTitle').textContent = data ? `Editar: ${data.email}` : 'Nuevo Usuario';
+    document.getElementById('userDelete').style.display = data ? '' : 'none';
+    document.getElementById('uf_email').value = data ? data.email : '';
+    document.getElementById('uf_email').disabled = !!data;
+    document.getElementById('uf_password').value = '';
+    document.getElementById('uf_role').value = data ? data.role : 'viewer';
+    document.getElementById('userModal').style.display = '';
+  }
+
+  function closeUserModal() {
+    document.getElementById('userModal').style.display = 'none';
+    editingUserEmail = null;
+  }
+
+  async function saveUser(e) {
+    e.preventDefault();
+    const email = document.getElementById('uf_email').value.trim();
+    const password = document.getElementById('uf_password').value;
+    const role = document.getElementById('uf_role').value.trim();
+
+    if (!email || !role) { alert('Email y rol son obligatorios.'); return; }
+
+    try {
+      if (editingUserEmail) {
+        const body = { role };
+        if (password) body.password = password;
+        await apiPatchByFilter('usuarios', `email=eq.${encodeURIComponent(editingUserEmail)}`, body);
+      } else {
+        if (!password) { alert('La contraseña es obligatoria para nuevos usuarios.'); return; }
+        await apiPost('usuarios', { email, password, role });
+      }
+      closeUserModal();
+      loadUsuariosTable();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  async function deleteUser(email) {
+    if (state.currentUser && state.currentUser.email === email) {
+      alert('No puedes eliminar tu propia cuenta.');
+      return;
+    }
+    if (!confirm(`¿Eliminar el usuario "${email}"?`)) return;
+    try {
+      await apiDelete('usuarios', `email=eq.${encodeURIComponent(email)}`);
+      closeUserModal();
+      loadUsuariosTable();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  window._editUser = async function(email) {
+    try {
+      const data = await apiGet('usuarios', { email: `eq.${email}` });
+      if (data.length) openUserModal(data[0]);
+    } catch (err) { alert('Error: ' + err.message); }
+  };
+  window._deleteUser = deleteUser;
+
+  function initUsuarios() {
+    document.getElementById('btnNuevoUsuario').addEventListener('click', () => openUserModal());
+    document.getElementById('userCancel').addEventListener('click', closeUserModal);
+    document.getElementById('userForm').addEventListener('submit', saveUser);
+    document.getElementById('userDelete').addEventListener('click', () => {
+      if (editingUserEmail) deleteUser(editingUserEmail);
+    });
+  }
+
+  // ============================================================
+  // LOGIN
+  // ============================================================
+  const loginState = { attempts: 0, lockedUntil: null };
+  const MAX_ATTEMPTS = 5;
+  const LOCKOUT_MS = 60000;
+
+  function initLogin() {
+    const loginScreen = document.getElementById('loginScreen');
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPass = document.getElementById('loginPass');
+
+    // Check saved session
+    const saved = sessionStorage.getItem('ta_user');
+    if (saved) {
+      showApp(JSON.parse(saved));
+      return;
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Check lockout
+      if (loginState.lockedUntil && Date.now() < loginState.lockedUntil) {
+        const secs = Math.ceil((loginState.lockedUntil - Date.now()) / 1000);
+        showLoginError(`Cuenta bloqueada. Espera ${secs}s.`);
+        return;
+      }
+
+      const email = loginEmail.value.trim();
+      const pass = loginPass.value;
+
+      if (!email || !pass) {
+        showLoginError('Introduce email y contraseña.');
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Verificando...';
+
+      try {
+        const res = await fetch(`${API_BASE}/usuarios?email=eq.${encodeURIComponent(email)}&password=eq.${encodeURIComponent(pass)}`);
+        const data = await res.json();
+
+        if (data && data.length > 0) {
+          // Login correcto
+          loginState.attempts = 0;
+          const user = data[0];
+          sessionStorage.setItem('ta_user', JSON.stringify(user));
+          showApp(user);
+        } else {
+          loginState.attempts++;
+          if (loginState.attempts >= MAX_ATTEMPTS) {
+            loginState.lockedUntil = Date.now() + LOCKOUT_MS;
+            showLoginError(`Demasiados intentos (${MAX_ATTEMPTS}). Bloqueado 60s.`);
+          } else {
+            showLoginError(`Credenciales incorrectas. Intento ${loginState.attempts}/${MAX_ATTEMPTS}.`);
+          }
+        }
+      } catch (err) {
+        showLoginError('Error de conexión con el servidor.');
+      }
+
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Iniciar Sesión';
+    });
+
+    function showLoginError(msg) {
+      loginError.textContent = msg;
+      loginError.style.display = 'block';
+    }
+  }
+
+  function showApp(user) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appTopbar').style.display = '';
+    document.getElementById('appMain').style.display = '';
+    state.currentUser = user;
+    initApp();
+  }
+
+  function logout() {
+    sessionStorage.removeItem('ta_user');
+    state.currentUser = null;
+    document.getElementById('loginScreen').style.display = '';
+    document.getElementById('appTopbar').style.display = 'none';
+    document.getElementById('appMain').style.display = 'none';
+    document.getElementById('loginEmail').value = '';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginError').style.display = 'none';
+  }
+
+  document.addEventListener('app-logout', logout);
+
+  // ============================================================
   // INIT
   // ============================================================
-  function init() {
+  function initApp() {
     initMap();
     initNav();
     initImport();
+    initCrud();
+    initUsuarios();
     initEvents();
     loadExpedientes();
-    els.userInfo.textContent = 'manuel@tecnologiaalcala.es';
+    els.userInfo.textContent = state.currentUser ? state.currentUser.email : '';
+  }
+
+  function init() {
+    initLogin();
   }
 
   if (document.readyState === 'loading') {
