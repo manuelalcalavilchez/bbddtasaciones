@@ -10,7 +10,6 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
     <style>
-        /* ===== VARIABLES DE DISEÑO (SISTEMA DE DISEÑO OSCURO DE ALTO CONTRASTE) ===== */
         :root {
             --bg-main: #0f172a;
             --bg-card: #1e293b;
@@ -26,13 +25,7 @@
             --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* ===== RESETEO GLOBAL DE ESTILOS ===== */
-        * { 
-            box-sizing: border-box; 
-            margin: 0; 
-            padding: 0; 
-            font-family: 'Inter', sans-serif; 
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
 
         body {
             background-color: var(--bg-main);
@@ -44,7 +37,6 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ===== VISTA 1: CAPA DE AUTENTICACIÓN (LOGIN DE ENTRADA) ===== */
         #auth-view {
             display: grid;
             place-items: center;
@@ -63,30 +55,11 @@
             box-shadow: 0 20px 25px -5px rgba(0,0,0,0.4), 0 10px 10px -5px rgba(0,0,0,0.2);
         }
 
-        .login-card h2 {
-            font-size: 26px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            text-align: center;
-            letter-spacing: -0.5px;
-        }
+        .login-card h2 { font-size: 26px; font-weight: 700; margin-bottom: 8px; text-align: center; letter-spacing: -0.5px; }
+        .login-card p { color: var(--text-muted); font-size: 14px; text-align: center; margin-bottom: 32px; }
 
-        .login-card p {
-            color: var(--text-muted);
-            font-size: 14px;
-            text-align: center;
-            margin-bottom: 32px;
-        }
+        #app-view { display: none; flex: 1; height: 100vh; overflow: hidden; }
 
-        /* ===== VISTA 2: NÚCLEO INTERFAZ PRINCIPAL SPA ===== */
-        #app-view {
-            display: none; /* Se activa por app.js al autenticar con éxito */
-            flex: 1;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* Barra Lateral Izquierda (Menú del Sistema) */
         .sidebar {
             width: 280px;
             background: var(--bg-card);
@@ -98,426 +71,188 @@
             flex-shrink: 0;
         }
 
-        .brand h1 {
-            font-size: 19px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            margin-bottom: 40px;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .brand h1 { font-size: 19px; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 40px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
 
-        .nav {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            flex: 1;
-        }
+        .nav { display: flex; flex-direction: column; gap: 10px; flex: 1; }
 
         .nav a {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            color: var(--text-muted);
-            text-decoration: none;
-            padding: 14px 16px;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 500;
-            transition: var(--transition);
+            display: flex; align-items: center; gap: 14px;
+            color: var(--text-muted); text-decoration: none;
+            padding: 14px 16px; border-radius: 10px;
+            font-size: 14px; font-weight: 500; transition: var(--transition);
         }
 
-        .nav a:hover {
-            background: rgba(255, 255, 255, 0.03);
-            color: var(--text-main);
-        }
+        .nav a:hover { background: rgba(255, 255, 255, 0.03); color: var(--text-main); }
 
         .nav a.active {
-            background: var(--bg-input);
-            color: var(--text-main);
-            font-weight: 600;
+            background: var(--bg-input); color: var(--text-main); font-weight: 600;
             border-left: 4px solid var(--primary);
-            border-top-left-radius: 2px;
-            border-bottom-left-radius: 2px;
+            border-top-left-radius: 2px; border-bottom-left-radius: 2px;
         }
 
-        .sidebar-footer {
-            border-top: 1px solid var(--border);
-            padding-top: 24px;
-        }
+        .sidebar-footer { border-top: 1px solid var(--border); padding-top: 24px; }
 
         #userBadge {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 16px;
-            word-break: break-all;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(0, 0, 0, 0.15);
-            padding: 10px;
-            border-radius: 8px;
+            font-size: 13px; color: var(--text-muted); margin-bottom: 16px;
+            word-break: break-all; display: flex; align-items: center; gap: 8px;
+            background: rgba(0, 0, 0, 0.15); padding: 10px; border-radius: 8px;
         }
 
-        /* Bloque Derecho de Visualización de Contenidos */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            background: var(--bg-main);
-        }
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-main); }
 
         .view-section {
-            display: none;
-            padding: 40px;
-            flex-direction: column;
-            gap: 32px;
-            max-width: 1600px;
-            width: 100%;
-            margin: 0 auto;
+            display: none; padding: 40px; flex-direction: column; gap: 32px;
+            max-width: 1600px; width: 100%; margin: 0 auto;
         }
 
-        .view-section.active {
-            display: flex;
-        }
+        .view-section.active { display: flex; }
 
-        .section-header {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            padding-bottom: 20px;
-        }
+        .section-header { border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 20px; }
+        .section-header h2 { font-size: 28px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.5px; }
+        .section-header p { color: var(--text-muted); font-size: 15px; }
 
-        .section-header h2 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 6px;
-            letter-spacing: -0.5px;
-        }
-
-        .section-header p {
-            color: var(--text-muted);
-            font-size: 15px;
-        }
-
-        /* ===== ELEMENTOS DE FORMULARIO COMUNES Y CONTROLES TELESCOPICOS ===== */
-        .form-group {
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .form-group label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+        .form-group { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
         .form-control {
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            color: var(--text-main);
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-            width: 100%;
+            background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main);
+            padding: 12px 16px; border-radius: 8px; font-size: 14px; outline: none; width: 100%;
             transition: var(--transition);
         }
 
-        .form-control:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-        }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
 
         .btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            width: 100%;
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            background: var(--primary); color: white; border: none; padding: 14px;
+            border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; width: 100%;
+            transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 8px;
         }
 
-        .btn:hover { 
-            background: var(--primary-hover); 
-        }
+        .btn:hover { background: var(--primary-hover); }
 
-        /* ===== BLOQUE DE KPIs SUPERIORES ===== */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 20px;
-        }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
 
         .kpi-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            position: relative;
-            overflow: hidden;
+            background: var(--bg-card); border: 1px solid var(--border); padding: 24px;
+            border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            position: relative; overflow: hidden;
         }
 
-        .kpi-card::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 4px; height: 100%;
-            background: var(--primary);
-        }
-
+        .kpi-card::after { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary); }
         .kpi-card:nth-child(2)::after { background: var(--warning); }
         .kpi-card:nth-child(3)::after { background: var(--success); }
+        .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-card .kpi-val { font-size: 32px; font-weight: 700; margin-top: 8px; letter-spacing: -0.5px; }
 
-        .kpi-card .kpi-label { 
-            font-size: 12px; 
-            color: var(--text-muted); 
-            font-weight: 700; 
-            text-transform: uppercase; 
-            letter-spacing: 0.5px;
-        }
-        
-        .kpi-card .kpi-val { 
-            font-size: 32px; 
-            font-weight: 700; 
-            margin-top: 8px; 
-            letter-spacing: -0.5px;
-        }
-
-        /* ===== ENTORNO MAQUETACIÓN DASHBOARD GEOGRÁFICO ===== */
-        .dashboard-layout {
-            display: grid;
-            grid-template-columns: 340px 1fr;
-            gap: 32px;
-            align-items: start;
-        }
+        .dashboard-layout { display: grid; grid-template-columns: 340px 1fr; gap: 32px; align-items: start; }
 
         .panel-filtros {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
-            position: sticky;
-            top: 40px;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+            padding: 24px; position: sticky; top: 40px;
         }
 
-        .dashboard-main {
-            display: flex;
-            flex-direction: column;
-            gap: 32px;
-        }
+        .dashboard-main { display: flex; flex-direction: column; gap: 32px; }
 
-        /* Contenedor del Mapa Mapbox / Leaflet GIS */
         #map {
-            height: 440px;
-            width: 100%;
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            z-index: 1;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
+            height: 440px; width: 100%; border-radius: 16px; border: 1px solid var(--border);
+            z-index: 1; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
         }
 
-        /* ===== DISEÑO AVANZADO DE TABLAS COMPONENTES ===== */
         .table-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+            overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
 
         .card-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
-            font-weight: 700;
-            font-size: 16px;
-            background: rgba(255, 255, 255, 0.01);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 20px 24px; border-bottom: 1px solid var(--border); font-weight: 700;
+            font-size: 16px; background: rgba(255, 255, 255, 0.01);
+            display: flex; justify-content: space-between; align-items: center;
         }
 
-        .table-wrap { 
-            overflow-x: auto; 
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
+        th {
+            background: rgba(255,255,255,0.02); padding: 16px 24px; color: var(--text-muted);
+            font-weight: 600; border-bottom: 1px solid var(--border);
+            font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
         }
+        td { padding: 16px 24px; border-bottom: 1px solid rgba(71, 85, 105, 0.5); color: #e2e8f0; }
+        tbody tr { cursor: pointer; transition: var(--transition); }
+        tbody tr:hover { background: rgba(59, 130, 246, 0.04); }
+        tbody tr:last-child td { border-bottom: none; }
 
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            font-size: 14px; 
-            text-align: left; 
-        }
-
-        th { 
-            background: rgba(255,255,255,0.02); 
-            padding: 16px 24px; 
-            color: var(--text-muted); 
-            font-weight: 600; 
-            border-bottom: 1px solid var(--border);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        td { 
-            padding: 16px 24px; 
-            border-bottom: 1px solid rgba(71, 85, 105, 0.5); 
-            color: #e2e8f0; 
-        }
-
-        tbody tr { 
-            cursor: pointer; 
-            transition: var(--transition); 
-        }
-
-        tbody tr:hover { 
-            background: rgba(59, 130, 246, 0.04); 
-        }
-
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        /* ETIQUETAS BADGES DE ESTADO OPERACIONAL */
-        .badge { 
-            display: inline-flex; 
-            align-items: center; 
-            gap: 6px; 
-            padding: 6px 12px; 
-            border-radius: 20px; 
-            font-size: 12px; 
-            font-weight: 600; 
-        }
+        .badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
         .badge.finalizado { background: rgba(34,197,94,0.12); color: var(--success); }
         .badge.proceso { background: rgba(59,130,246,0.12); color: var(--primary); }
         .badge.pendiente { background: rgba(245,158,11,0.12); color: var(--warning); }
 
-        /* ===== CUADRÍCULA DE CUADROS ESTADÍSTICOS (CHARTS) ===== */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
-            gap: 24px;
-        }
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 24px; }
 
         .chart-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-        }
-        
-        .chart-card h3 { 
-            font-size: 14px; 
-            font-weight: 700; 
-            margin-bottom: 20px; 
-            color: var(--text-muted); 
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+            padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
 
-        /* ===== ZONA COOPERATIVA RECEPTORA DE JSON (DROPZONE) ===== */
+        .chart-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 20px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
         .dropzone {
-            border: 2px dashed var(--border);
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 60px 24px;
-            text-align: center;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .dropzone:hover, .dropzone.drag-over { 
-            border-color: var(--primary); 
-            background: rgba(59, 130, 246, 0.02); 
-        }
-        .dropzone .icon { 
-            font-size: 56px; 
-            color: var(--text-muted); 
-            margin-bottom: 16px; 
+            border: 2px dashed var(--border); background: var(--bg-card); border-radius: 16px;
+            padding: 60px 24px; text-align: center; cursor: pointer; transition: var(--transition);
         }
 
-        /* ===== ARQUITECTURA SECCIÓN CONFIGURACIÓN CUENTAS ===== */
-        .usuarios-layout {
-            display: grid;
-            grid-template-columns: 360px 1fr;
-            gap: 32px;
-            align-items: start;
-        }
+        .dropzone:hover, .dropzone.drag-over { border-color: var(--primary); background: rgba(59, 130, 246, 0.02); }
+        .dropzone .icon { font-size: 56px; color: var(--text-muted); margin-bottom: 16px; }
 
-        /* ===== MODALES GLOBALES DETALLE FICHA ===== */
+        .usuarios-layout { display: grid; grid-template-columns: 360px 1fr; gap: 32px; align-items: start; }
+
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.85); 
-            backdrop-filter: blur(5px);
-            display: none; 
-            place-items: center; 
-            z-index: 99999; 
-            padding: 24px;
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px);
+            display: none; place-items: center; z-index: 99999; padding: 24px;
             transition: var(--transition);
         }
-        .modal-overlay.open { 
-            display: grid; 
-        }
+
+        .modal-overlay.open { display: grid; }
+
         .modal-box {
-            background: var(--bg-card); 
-            border: 1px solid var(--border);
-            border-radius: 20px; 
-            width: 100%; 
-            max-width: 760px;
-            padding: 36px; 
-            position: relative; 
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+            width: 100%; max-width: 760px; padding: 36px; position: relative;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6);
             animation: modalAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
+
         @keyframes modalAppear {
             from { transform: scale(0.95); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
         }
+
         .modal-close {
-            position: absolute; top: 24px; right: 24px; 
-            background: rgba(255,255,255,0.05); border: none;
-            color: var(--text-muted); font-size: 16px; 
-            cursor: pointer; width: 32px; height: 32px;
+            position: absolute; top: 24px; right: 24px;
+            background: rgba(255,255,255,0.05); border: none; color: var(--text-muted);
+            font-size: 16px; cursor: pointer; width: 32px; height: 32px;
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
             transition: var(--transition);
         }
-        .modal-close:hover {
-            background: rgba(239, 64, 64, 0.2);
-            color: var(--danger);
+
+        .modal-close:hover { background: rgba(239, 64, 64, 0.2); color: var(--danger); }
+        .modal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px; }
+
+        .modal-field {
+            background: var(--bg-main); padding: 14px 18px; border-radius: 10px;
+            border: 1px solid var(--border); font-size: 14px;
         }
-        .modal-grid { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 16px; 
-            margin-top: 20px;
+
+        .modal-field label {
+            font-size: 11px; color: var(--text-muted); font-weight: 700;
+            display: block; margin-bottom: 4px; text-transform: uppercase;
         }
-        .modal-field { 
-            background: var(--bg-main); 
-            padding: 14px 18px; 
-            border-radius: 10px; 
-            border: 1px solid var(--border); 
-            font-size: 14px; 
-        }
-        .modal-field label { 
-            font-size: 11px; 
-            color: var(--text-muted); 
-            font-weight: 700; 
-            display: block; 
-            margin-bottom: 4px; 
-            text-transform: uppercase;
+
+        /* Indicador de filtros activos en Base de Datos */
+        .filtros-activos-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(59,130,246,0.15); color: var(--primary);
+            border: 1px solid rgba(59,130,246,0.3);
+            padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
         }
     </style>
 </head>
@@ -537,11 +272,10 @@
             </div>
             <div id="loginError" style="color:var(--danger); font-size:13px; margin-bottom:20px; min-height:20px; text-align:center; font-weight:500;"></div>
             <button id="btnLogin" class="btn">
-                <span class="material-symbols-outlined" style="font-size:18px;">login</span> Iniciar Sesión Electronica
+                <span class="material-symbols-outlined" style="font-size:18px;">login</span> Iniciar Sesión Electrónica
             </button>
         </div>
     </div>
-
 
     <div id="app-view">
         
@@ -578,6 +312,7 @@
 
         <div class="main-content">
 
+            <!-- SECCIÓN: PANEL PRINCIPAL -->
             <div id="sec-dashboard" class="view-section active">
                 <div class="section-header">
                     <h2>Panel Principal Analítico</h2>
@@ -605,7 +340,7 @@
                         
                         <div class="form-group">
                             <label>Texto Libre</label>
-                            <input type="text" id="advSearch" class="form-control" placeholder="Buscar por ref, propietario...">
+                            <input type="text" id="advSearch" class="form-control" placeholder="Buscar por ref, tasador...">
                         </div>
                         <div class="form-group">
                             <label>Tipología Constructiva</label>
@@ -659,7 +394,7 @@
                                 <span class="material-symbols-outlined" style="font-size:18px;">filter_alt</span> Filtrar Datos
                             </button>
                             <button id="btnBorrarFiltros" class="btn" style="background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main);">
-                                <span class="material-symbols-outlined" style="font-size:18px;">layers_clear</span> Limpiar Limites
+                                <span class="material-symbols-outlined" style="font-size:18px;">layers_clear</span> Limpiar Filtros
                             </button>
                         </div>
                     </div>
@@ -671,14 +406,20 @@
                         </div>
 
                         <div class="table-card">
-                            <div class="card-header">Vistas de Expedientes Sincronizados</div>
+                            <div class="card-header">
+                                Expedientes Filtrados
+                                <span id="filtroActivoBadge" class="filtros-activos-badge" style="display:none;">
+                                    <span class="material-symbols-outlined" style="font-size:14px;">filter_alt</span>
+                                    <span id="filtroActivoTexto">Filtro activo</span>
+                                </span>
+                            </div>
                             <div class="table-wrap">
                                 <table>
                                     <thead>
                                         <tr>
                                             <th>Referencia</th>
                                             <th>Tipología</th>
-                                            <th>Solicitante</th>
+                                            <th>Tasador</th>
                                             <th>Municipio</th>
                                             <th>Estado</th>
                                             <th>Proximidad</th>
@@ -714,20 +455,27 @@
                 </div>
             </div>
 
+            <!-- SECCIÓN: BASE DE DATOS -->
             <div id="sec-database" class="view-section">
                 <div class="section-header">
                     <h2>Base de Datos Global</h2>
                     <p>Explotación de registros directos de auditorías y tasaciones indexadas en PostgREST.</p>
                 </div>
                 <div class="table-card">
-                    <div class="card-header">Historial Completo Auditado</div>
+                    <div class="card-header">
+                        Historial Completo Auditado
+                        <span id="dbFiltroActivoBadge" class="filtros-activos-badge" style="display:none;">
+                            <span class="material-symbols-outlined" style="font-size:14px;">filter_alt</span>
+                            <span id="dbFiltroActivoTexto">Filtro activo</span>
+                        </span>
+                    </div>
                     <div class="table-wrap">
                         <table>
                             <thead>
                                 <tr>
                                     <th>Referencia</th>
                                     <th>Tipo de Bien</th>
-                                    <th>Solicitante</th>
+                                    <th>Tasador</th>
                                     <th>Localización</th>
                                     <th>Estado Actual</th>
                                     <th>Valor Estimado</th>
@@ -743,6 +491,7 @@
                 </div>
             </div>
 
+            <!-- SECCIÓN: IMPORTAR -->
             <div id="sec-import" class="view-section">
                 <div class="section-header">
                     <h2>Módulo de Importación Masiva</h2>
@@ -751,8 +500,7 @@
                 <div class="dropzone" id="dropZone">
                     <span class="material-symbols-outlined icon">cloud_upload</span>
                     <h3 style="font-size:18px; margin-bottom:6px; font-weight:700;">Arrastra tus colecciones JSON aquí</h3>
-                    <p style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">o pincha para examinar en el explorador de archivos de Windows/Mac</p>
-                   
+                    <p style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">o pincha para examinar en el explorador de archivos</p>
                     <input type="file" id="jsonFileInput" accept=".json" multiple style="display: none;" />
                 </div>
                 <div id="importProgress" style="background:var(--bg-card); border:1px solid var(--border); padding:20px; border-radius:12px; font-size:14px; color:var(--text-muted); font-weight:500;">
@@ -760,6 +508,7 @@
                 </div>
             </div>
 
+            <!-- SECCIÓN: USUARIOS -->
             <div id="sec-users" class="view-section">
                 <div class="section-header">
                     <h2>Administración de Personal de Campo</h2>
@@ -826,7 +575,10 @@
                 </div>
             </div>
 
-        </div></div><div id="modal-ficha" class="modal-overlay">
+        </div>
+    </div>
+
+    <div id="modal-ficha" class="modal-overlay">
         <div class="modal-box">
             <button class="modal-close" id="btnCerrarModal">✕</button>
             <div id="modal-contenido"></div>
@@ -835,7 +587,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-    
     <script src="app.js"></script>
 </body>
 </html>
