@@ -10,20 +10,29 @@ import NewAppraisalView from './components/NewAppraisalView';
 import AppraisalDetailView from './components/AppraisalDetailView';
 import AdminView from './components/AdminView';
 import EditAppraisalView from './components/EditAppraisalView';
-import { Database, Terminal, Copy, X, Code2 } from 'lucide-react';
+import LoginView, { AppUser } from './components/LoginView';
+import { Database, Terminal, Copy, X, Code2, LogOut } from 'lucide-react';
+
+const DEFAULT_USERS: AppUser[] = [
+  { id: 'USR-001', username: 'admin', password: 'admin123', name: 'Carlos Mendoza', role: 'admin', email: 'carlos@tecnologiaalcala.es', active: true },
+  { id: 'USR-002', username: 'perito1', password: 'perito123', name: 'Ana Lopez Garcia', role: 'perito', email: 'ana.lopez@tecnologiaalcala.es', active: true },
+  { id: 'USR-003', username: 'consultor1', password: 'consultor123', name: 'Pedro Martinez', role: 'consultor', email: 'pedro@tecnologiaalcala.es', active: true },
+];
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
+  const [users, setUsers] = useState<AppUser[]>(DEFAULT_USERS);
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [config, setConfig] = useState<SystemConfig>({
-    appName: 'Tasaciones Alcalá',
-    subTitle: 'EXPERTISE & SECURITY',
+    appName: 'Tecnología Alcalá',
+    subTitle: 'TASACIONES & PERITAJES',
     peritoName: 'Carlos Mendoza',
     peritoRole: 'Tasador Senior',
     defaultMunicipality: 'Alcalá de Henares',
     defaultTaxRate: 21,
     multiplierCitricos: 25.50,
     multiplierUrbano: 1600,
-    supportEmail: 'soporte@tasacionesalcala.es',
+    supportEmail: 'soporte@tecnologiaalcala.es',
     contactPhone: '+34 91 885 4000'
   });
   const [appraisals, setAppraisals] = useState<Appraisal[]>(INITIAL_APPRAISALS);
@@ -66,6 +75,21 @@ export default function App() {
       setSelectedAppraisal(null);
     }
   };
+
+  const handleLogin = (user: AppUser) => {
+    setCurrentUser(user);
+    setCurrentView('dashboard');
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setCurrentView('dashboard');
+  };
+
+  // If not logged in, show login screen
+  if (!currentUser) {
+    return <LoginView users={users} onLogin={handleLogin} />;
+  }
 
   const handleCopyText = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -130,6 +154,8 @@ CREATE TABLE IF NOT EXISTS valuation_details (
         <Header 
           appraisals={appraisals}
           config={config}
+          currentUserName={currentUser.name}
+          onLogout={handleLogout}
           onSearchSelect={(app) => {
             setSelectedAppraisal(app);
             setCurrentView('detail');
@@ -207,6 +233,9 @@ CREATE TABLE IF NOT EXISTS valuation_details (
               config={config}
               onUpdateConfig={(newConfig) => setConfig(newConfig)}
               onResetDatabase={handleResetDatabase}
+              users={users}
+              onUpdateUsers={setUsers}
+              currentUser={currentUser}
             />
           )}
         </main>

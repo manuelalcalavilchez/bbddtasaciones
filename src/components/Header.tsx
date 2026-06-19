@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Search, Bell, Settings, Command } from 'lucide-react';
+import { Search, Bell, Settings, Command, LogOut } from 'lucide-react';
 import { Appraisal, SystemConfig } from '../types';
 
 interface HeaderProps {
   onSearchSelect?: (appraisal: Appraisal) => void;
   appraisals?: Appraisal[];
   config: SystemConfig;
+  currentUserName?: string;
+  onLogout?: () => void;
 }
 
-export default function Header({ onSearchSelect, appraisals = [], config }: HeaderProps) {
+export default function Header({ onSearchSelect, appraisals = [], config, currentUserName, onLogout }: HeaderProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showResults, setShowResults] = useState(false);
 
@@ -102,16 +104,21 @@ export default function Header({ onSearchSelect, appraisals = [], config }: Head
         {/* User Card */}
         <div className="flex items-center gap-2 pl-1 select-none">
           <div className="text-right hidden sm:block font-sans">
-            <p className="text-xs font-bold text-on-surface leading-none">{config.peritoName}</p>
-            <p className="text-[9px] text-[#444651] font-semibold">{config.peritoRole}</p>
+            <p className="text-xs font-bold text-on-surface leading-none">{currentUserName || config.peritoName}</p>
+            <p className="text-[9px] text-on-surface-variant font-semibold">{config.peritoRole}</p>
           </div>
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-outline bg-[#00236f]">
-            <img 
-              alt={`Perito ${config.peritoName}`} 
-              className="w-full h-full object-cover" 
-              src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=120&h=120&q=80" 
-            />
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-outline bg-primary flex items-center justify-center text-on-primary text-[10px] font-bold">
+            {(currentUserName || config.peritoName).split(' ').map(n => n.charAt(0)).join('').slice(0, 2)}
           </div>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="p-2 hover:bg-surface-container-high transition-colors rounded-full text-on-surface-variant cursor-pointer border-0 bg-transparent"
+              title="Cerrar Sesion"
+            >
+              <LogOut className="w-4 h-4 text-error" />
+            </button>
+          )}
         </div>
       </div>
     </header>

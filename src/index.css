@@ -1,62 +1,62 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #00236f;
-  --color-on-primary: #ffffff;
-  --color-primary-container: #1e3a8a;
-  --color-on-primary-container: #90a8ff;
-  --color-primary-fixed: #dce1ff;
-  --color-primary-fixed-dim: #b6c4ff;
-  --color-on-primary-fixed: #00164e;
-  --color-on-primary-fixed-variant: #264191;
+  --color-primary: #4fc3f7;
+  --color-on-primary: #003544;
+  --color-primary-container: #004d61;
+  --color-on-primary-container: #b3e5fc;
+  --color-primary-fixed: #b3e5fc;
+  --color-primary-fixed-dim: #81d4fa;
+  --color-on-primary-fixed: #001f2a;
+  --color-on-primary-fixed-variant: #004d61;
 
-  --color-secondary: #505f76;
-  --color-on-secondary: #ffffff;
-  --color-secondary-container: #d0e1fb;
-  --color-on-secondary-container: #54647a;
-  --color-secondary-fixed: #d3e4fe;
-  --color-secondary-fixed-dim: #b7c8e1;
-  --color-on-secondary-fixed: #0b1c30;
-  --color-on-secondary-fixed-variant: #38485d;
+  --color-secondary: #78909c;
+  --color-on-secondary: #1b2b33;
+  --color-secondary-container: #2e3d45;
+  --color-on-secondary-container: #b0bec5;
+  --color-secondary-fixed: #cfd8dc;
+  --color-secondary-fixed-dim: #b0bec5;
+  --color-on-secondary-fixed: #0d1b21;
+  --color-on-secondary-fixed-variant: #37474f;
 
-  --color-tertiary: #222a3e;
+  --color-tertiary: #455a64;
   --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #384055;
-  --color-on-tertiary-container: #a4acc5;
-  --color-tertiary-fixed: #dae2fd;
-  --color-tertiary-fixed-dim: #bec6e0;
-  --color-on-tertiary-fixed: #131b2e;
-  --color-on-tertiary-fixed-variant: #3f465c;
+  --color-tertiary-container: #37474f;
+  --color-on-tertiary-container: #90a4ae;
+  --color-tertiary-fixed: #cfd8dc;
+  --color-tertiary-fixed-dim: #b0bec5;
+  --color-on-tertiary-fixed: #0d1b21;
+  --color-on-tertiary-fixed-variant: #37474f;
 
-  --color-error: #ba1a1a;
+  --color-error: #ef5350;
   --color-on-error: #ffffff;
-  --color-error-container: #ffdad6;
-  --color-on-error-container: #93000a;
+  --color-error-container: #4e1515;
+  --color-on-error-container: #ffcdd2;
 
-  --color-background: #f7f9fb;
-  --color-on-background: #191c1e;
+  --color-background: #0d1117;
+  --color-on-background: #c9d1d9;
 
-  --color-surface: #ffffff;
-  --color-surface-dim: #d8dadc;
-  --color-surface-bright: #f7f9fb;
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f2f4f6;
-  --color-surface-container: #eceef0;
-  --color-surface-container-high: #e6e8ea;
-  --color-surface-container-highest: #e0e3e5;
-  --color-on-surface: #191c1e;
-  --color-on-surface-variant: #444651;
+  --color-surface: #161b22;
+  --color-surface-dim: #0d1117;
+  --color-surface-bright: #21262d;
+  --color-surface-container-lowest: #0d1117;
+  --color-surface-container-low: #131920;
+  --color-surface-container: #1c2128;
+  --color-surface-container-high: #21262d;
+  --color-surface-container-highest: #2d333b;
+  --color-on-surface: #c9d1d9;
+  --color-on-surface-variant: #8b949e;
   
-  --color-outline: #757682;
-  --color-outline-variant: #c5c5d3;
-  --color-surface-variant: #e0e3e5;
-  --color-inverse-surface: #2d3133;
-  --color-inverse-on-surface: #eff1f3;
-  --color-inverse-primary: #b6c4ff;
-  --color-surface-tint: #4059aa;
+  --color-outline: #30363d;
+  --color-outline-variant: #21262d;
+  --color-surface-variant: #21262d;
+  --color-inverse-surface: #c9d1d9;
+  --color-inverse-on-surface: #0d1117;
+  --color-inverse-primary: #004d61;
+  --color-surface-tint: #4fc3f7;
 
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
   
   --radius-xs: 0.125rem;
   --radius-sm: 0.25rem;
@@ -83,11 +83,11 @@
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--color-outline-variant);
+  background: var(--color-outline);
   border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--color-outline);
+  background: var(--color-on-surface-variant);
 }
 
 .material-symbols-outlined {
@@ -100,4 +100,13 @@
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   display: inline-block;
   vertical-align: middle;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
 }
